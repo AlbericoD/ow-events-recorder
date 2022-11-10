@@ -1,0 +1,46 @@
+.Checkbox {
+  display: flex;
+  justify-items: flex-start;
+  align-items: center;
+  cursor: pointer;
+
+  &.disabled {
+    cursor: inherit;
+  }
+
+  .checkbox-switch {
+    position: relative;
+    display: block;
+    margin-left: auto;
+    width: 30px;
+    height: 16px;
+    border: 2px solid #5E5E5E;
+    cursor: inherit;
+    contain: strict;
+    transition: all .15s ease-in-out;
+
+    &::before {
+      content: '';
+      display: block;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 8px;
+      height: 8px;
+      background: #5E5E5E;
+      transition: all .15s ease-in-out;
+    }
+  }
+
+  &:not(.disabled).on .checkbox-switch::before {
+    background: #00D7C2;
+  }
+
+  &:not(.disabled).on .checkbox-switch::before {
+    left: calc(100% - 2px - 8px);
+  }
+
+  &.disabled .checkbox-switch {
+    opacity: .5;
+  }
+}

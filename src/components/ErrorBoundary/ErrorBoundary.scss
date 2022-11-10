@@ -1,0 +1,16 @@
+.ErrorBoundary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  height: 100vh;
+  color: #f00;
+  font-size: 16px;
+
+  >h1 {
+    margin-bottom: 15px;
+    color: #000;
+    font-size: 24px;
+    font-weight: 700;
+  }
+}

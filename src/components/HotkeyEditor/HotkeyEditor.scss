@@ -1,0 +1,27 @@
+.HotkeyEditor {
+  position: relative;
+  min-width: 80px;
+  min-height: 22px;
+  padding: 1px 8px;
+  line-height: 22px;
+  color: #CACACA;
+  background: #5E5E5E;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  text-align: center;
+  contain: paint;
+  transition: all 150ms ease-in-out;
+
+  &:hover,
+  &.editing {
+    color: #5E5E5E;
+    background: #fff;
+  }
+
+  &.error {
+    color: #fff;
+    background: #f00;
+  }
+}
