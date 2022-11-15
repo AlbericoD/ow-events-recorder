@@ -9,74 +9,69 @@ export type EventBusEvents = {
   setAutoLaunch: boolean
 }
 
-export const enum RecordingEventTypes {
+export enum RecordingEventTypes {
   GameLaunched,
   GameInfo,
   LauncherLaunched,
   LauncherUpdated,
   LauncherTerminated,
-  SetFeatures,
+  LauncherEvent,
+  LauncherInfoUpdate,
   GameEvent,
   InfoUpdate,
   Error
 }
 
-export interface RecordingGenericEvent {
+export interface RecordingEvent {
   type: RecordingEventTypes
   time: number
   data: any
 }
 
-export interface RecordingLauncherLaunched extends RecordingGenericEvent {
+export interface RecordingLauncherLaunched extends RecordingEvent {
   type: RecordingEventTypes.LauncherLaunched
   data: overwolf.games.launchers.LauncherInfo
 }
 
-export interface RecordingLauncherUpdated extends RecordingGenericEvent {
+export interface RecordingLauncherUpdated extends RecordingEvent {
   type: RecordingEventTypes.LauncherUpdated
   data: overwolf.games.launchers.UpdatedEvent
 }
 
-export interface RecordingLauncherTerminated extends RecordingGenericEvent {
+export interface RecordingLauncherTerminated extends RecordingEvent {
   type: RecordingEventTypes.LauncherTerminated
   data: overwolf.games.launchers.LauncherInfo
 }
 
-export interface RecordingGameLaunched extends RecordingGenericEvent {
+export interface RecordingGameLaunched extends RecordingEvent {
   type: RecordingEventTypes.GameLaunched
   data: overwolf.games.RunningGameInfo
 }
 
-export interface RecordingGameInfo extends RecordingGenericEvent {
+export interface RecordingGameInfo extends RecordingEvent {
   type: RecordingEventTypes.GameInfo
   data: overwolf.games.GameInfoUpdatedEvent
 }
 
-export interface RecordingGameEvent extends RecordingGenericEvent {
+export interface RecordingLauncherEvent extends RecordingEvent {
+  type: RecordingEventTypes.LauncherEvent
+}
+
+export interface RecordingLauncherInfoUpdate extends RecordingEvent {
+  type: RecordingEventTypes.LauncherInfoUpdate
+}
+
+export interface RecordingGameEvent extends RecordingEvent {
   type: RecordingEventTypes.GameEvent
-  name: string
 }
 
-export interface RecordingInfoUpdate extends RecordingGenericEvent {
+export interface RecordingInfoUpdate extends RecordingEvent {
   type: RecordingEventTypes.InfoUpdate
-  feature: string
-  category: string
-  key: string
 }
 
-export interface RecordingError extends RecordingGenericEvent {
+export interface RecordingError extends RecordingEvent {
   type: RecordingEventTypes.Error
 }
-
-export type RecordingEvent =
-  RecordingLauncherLaunched |
-  RecordingLauncherUpdated |
-  RecordingLauncherTerminated |
-  RecordingGameLaunched |
-  RecordingGameInfo |
-  RecordingGameEvent |
-  RecordingInfoUpdate |
-  RecordingError;
 
 export type RecordingTimeline = Map<number, RecordingEvent[]>;
 

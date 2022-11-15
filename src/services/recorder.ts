@@ -2,7 +2,7 @@ import { EventEmitter, delay, log } from 'ow-libs';
 
 import { kLeagueLauncherId } from '../constants/config';
 
-import { IncompleteRecording, CompleteRecording, RecordingGameLaunched, RecordingEventTypes, RecordingGameInfo, RecordingError, RecordingLauncherLaunched, RecordingLauncherUpdated, RecordingLauncherTerminated } from '../constants/types';
+import { IncompleteRecording, CompleteRecording, RecordingEventTypes } from '../constants/types';
 
 export interface RecorderServiceEvents {
   onComplete: CompleteRecording
@@ -14,8 +14,11 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
   #launcherFeatures: string[] = [];
   #gameFeatures: string[] = [];
 
-  #isRecording: boolean = false;
   #recording: IncompleteRecording | CompleteRecording | null = null;
+
+  get isRecording() {
+    return (this.#recording !== null);
+  }
 
   #removeListeners() {
     overwolf.games.launchers.onLaunched.removeListener(this.#onLauncherLaunched);
@@ -63,106 +66,34 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
     overwolf.games.events.onNewEvents.addListener(this.#onNewEvent);
   }
 
-  #onLauncherLaunched = (data: overwolf.games.launchers.LauncherInfo) => {
-    console.log('RecorderService.#onLauncherLaunched()', ...log(data));
-
-    if (!this.#isRecording || !this.#recording) {
-      return;
+  #onLauncherLaunched = (e: overwolf.games.launchers.LauncherInfo) => {
+    if (this.#recording) {
+      this.#setLauncherRequiredFeatures();
     }
 
-    this.#setLauncherRequiredFeatures();
-
-    const time = Date.now();
-
-    const recordedUpdate: RecordingLauncherLaunched = {
-      type: RecordingEventTypes.LauncherLaunched,
-      time,
-      data
-    };
-
-    const recordedUpdates = this.#recording.timeline.get(time) || [];
-
-    recordedUpdates.push(recordedUpdate);
-
-    this.#recording.timeline.set(time, recordedUpdates);
+    this.#recordEvent(RecordingEventTypes.LauncherLaunched, e);
   }
 
-  #onLauncherUpdated = (data: overwolf.games.launchers.UpdatedEvent) => {
-    console.log('RecorderService.#onLauncherUpdate()', ...log(data));
-
-    if (!this.#isRecording || !this.#recording) {
-      return;
-    }
-
-    const time = Date.now();
-
-    const recordedUpdate: RecordingLauncherUpdated = {
-      type: RecordingEventTypes.LauncherUpdated,
-      time,
-      data
-    };
-
-    const recordedUpdates = this.#recording.timeline.get(time) || [];
-
-    recordedUpdates.push(recordedUpdate);
-
-    this.#recording.timeline.set(time, recordedUpdates);
+  #onLauncherUpdated = (e: overwolf.games.launchers.UpdatedEvent) => {
+    this.#recordEvent(RecordingEventTypes.LauncherUpdated, e);
   }
 
-  #onLauncherTerminated = (data: overwolf.games.launchers.LauncherInfo) => {
-    console.log('RecorderService.#onLauncherTerminated()', ...log(data));
-
-    if (!this.#isRecording || !this.#recording) {
-      return;
+  #onLauncherTerminated = (e: overwolf.games.launchers.LauncherInfo) => {
+    if (this.#recording) {
+      this.#removeLauncherEventListeners();
     }
 
-    this.#removeLauncherEventListeners();
-
-    const time = Date.now();
-
-    const recordedUpdate: RecordingLauncherTerminated = {
-      type: RecordingEventTypes.LauncherTerminated,
-      time,
-      data
-    };
-
-    const recordedUpdates = this.#recording.timeline.get(time) || [];
-
-    recordedUpdates.push(recordedUpdate);
-
-    this.#recording.timeline.set(time, recordedUpdates);
+    this.#recordEvent(RecordingEventTypes.LauncherTerminated, e);
   }
 
-  #onGameLaunched = (data: overwolf.games.RunningGameInfo) => {
-    console.log('RecorderService.#onGameLaunched()', ...log(data));
-
-    if (!this.#isRecording || !this.#recording) {
-      return;
-    }
-
-    const time = Date.now();
-
-    const recordedUpdate: RecordingGameLaunched = {
-      type: RecordingEventTypes.GameLaunched,
-      time,
-      data
-    };
-
-    const recordedUpdates = this.#recording.timeline.get(time) || [];
-
-    recordedUpdates.push(recordedUpdate);
-
-    this.#recording.timeline.set(time, recordedUpdates);
+  #onGameLaunched = (e: overwolf.games.RunningGameInfo) => {
+    this.#recordEvent(RecordingEventTypes.GameLaunched, e);
   }
 
   #onGameInfoUpdated = (gameInfo: overwolf.games.GameInfoUpdatedEvent) => {
     console.log('RecorderService.#onGameInfoUpdated()', ...log(gameInfo));
 
-    if (!this.#isRecording || !this.#recording) {
-      return;
-    }
-
-    if (gameInfo.runningChanged) {
+    if (this.#recording && gameInfo.runningChanged) {
       if (gameInfo.gameInfo?.isRunning) {
         this.#setGameRequiredFeatures();
       } else {
@@ -170,106 +101,37 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
       }
     }
 
-    const time = Date.now();
-
-    const recordedUpdate: RecordingGameInfo = {
-      type: RecordingEventTypes.GameInfo,
-      time,
-      data: gameInfo
-    };
-
-    const recordedUpdates = this.#recording.timeline.get(time) || [];
-
-    recordedUpdates.push(recordedUpdate);
-
-    this.#recording.timeline.set(time, recordedUpdates);
+    this.#recordEvent(RecordingEventTypes.GameInfo, gameInfo);
   }
 
-  #onLauncherInfoUpdate = (data: any) => {
-    console.log('RecorderService.#onLauncherInfoUpdate()', data);
-
-    // if (!this.#isRecording || !this.#recording) {
-    //   return;
-    // }
-
-    // const time = Date.now();
-
-    // const info = data.info as Record<string, Record<string, any>>;
-
-    // const recordedUpdates = this.#recording.timeline.get(time) || [];
-
-    // for (const category in info) {
-    //   for (const key in info[category]) {
-    //     recordedUpdates.push({
-    //       type: RecordingEventTypes.InfoUpdate,
-    //       time,
-    //       feature: data.feature,
-    //       key,
-    //       category,
-    //       data: info[category][key]
-    //     });
-    //   }
-    // }
-
-    // this.#recording.timeline.set(time, recordedUpdates);
+  #onLauncherInfoUpdate = (e: any) => {
+    this.#recordEvent(RecordingEventTypes.LauncherInfoUpdate, e);
   }
 
-  #onLauncherNewEvent = (data: any) => {
-    console.log('RecorderService.#onLauncherNewEvent()', data);
-
-    // if (!this.#isRecording || !this.#recording) {
-    //   return;
-    // }
-
-    // const time = Date.now();
-
-    // const recordedEvents = this.#recording.timeline.get(time) || [];
-
-    // for (const { name, data } of data) {
-    //   recordedEvents.push({
-    //     type: RecordingEventTypes.GameEvent,
-    //     time,
-    //     name,
-    //     data
-    //   });
-    // }
-
-    // this.#recording.timeline.set(time, recordedEvents);
+  #onLauncherNewEvent = (e: any) => {
+    this.#recordEvent(RecordingEventTypes.LauncherEvent, e);
   }
 
-  #onInfoUpdate = (update: overwolf.games.events.InfoUpdates2Event) => {
-    console.log('RecorderService.#onInfoUpdate()', update);
-
-    if (!this.#isRecording || !this.#recording) {
-      return;
-    }
-
-    const time = Date.now();
-
-    const info = update.info as Record<string, Record<string, any>>;
-
-    const recordedUpdates = this.#recording.timeline.get(time) || [];
-
-    for (const category in info) {
-      for (const key in info[category]) {
-        recordedUpdates.push({
-          type: RecordingEventTypes.InfoUpdate,
-          time,
-          feature: update.feature,
-          key,
-          category,
-          data: info[category][key]
-        });
-      }
-    }
-
-    this.#recording.timeline.set(time, recordedUpdates);
+  #onInfoUpdate = (e: overwolf.games.events.InfoUpdates2Event) => {
+    this.#recordEvent(RecordingEventTypes.InfoUpdate, e);
   }
 
-  #onNewEvent = ({ events }: overwolf.games.events.NewGameEvents) => {
-    console.log('RecorderService.#onNewEvent()', events);
+  #onNewEvent = (e: overwolf.games.events.NewGameEvents) => {
+    this.#recordEvent(RecordingEventTypes.GameEvent, e);
+  }
 
-    if (!this.#isRecording || !this.#recording) {
+  #onError = (e: overwolf.games.events.ErrorEvent) => {
+    this.#recordEvent(RecordingEventTypes.Error, e);
+  }
+
+  #recordEvent(eventType: RecordingEventTypes, event: any) {
+    console.log(
+      'RecorderService.#recordEvent():',
+      RecordingEventTypes[eventType],
+      event
+    );
+
+    if (!this.#recording) {
       return;
     }
 
@@ -277,38 +139,13 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
 
     const recordedEvents = this.#recording.timeline.get(time) || [];
 
-    for (const { name, data } of events) {
-      recordedEvents.push({
-        type: RecordingEventTypes.GameEvent,
-        time,
-        name,
-        data
-      });
-    }
+    recordedEvents.push({
+      type: eventType,
+      time,
+      data: event
+    });
 
     this.#recording.timeline.set(time, recordedEvents);
-  }
-
-  #onError = (error: overwolf.games.events.ErrorEvent) => {
-    console.log('RecorderService.#onError()', ...log(error));
-
-    if (!this.#isRecording || !this.#recording) {
-      return;
-    }
-
-    const time = Date.now();
-
-    const recordedError: RecordingError = {
-      type: RecordingEventTypes.Error,
-      time,
-      data: error
-    };
-
-    const recordedErrors = this.#recording.timeline.get(time) || [];
-
-    recordedErrors.push(recordedError);
-
-    this.#recording.timeline.set(time, recordedErrors);
   }
 
   #tryToSetLauncherRequiredFeatures(): Promise<
@@ -417,7 +254,7 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
    * @see https://overwolf.github.io/docs/api/overwolf-games-events#setrequiredfeaturesfeatures-callback
    */
   async start(gameFeatures: string[] = [], launcherFeatures: string[] = []) {
-    if (this.#isRecording) {
+    if (this.#recording) {
       console.log('RecorderService.start(): recording already');
       return;
     }
@@ -429,12 +266,11 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
 
     this.#setListeners();
 
-    this.#isRecording = true;
     this.#recording = RecorderService.#makeNewRecording();
   }
 
   async stop() {
-    if (!this.#isRecording || !this.#recording) {
+    if (!this.#recording) {
       console.error('RecorderService.stop(): no recording');
       return null;
     }
@@ -447,7 +283,6 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
     const recording = this.#recording;
 
     this.#recording = null;
-    this.#isRecording = false;
 
     return recording as CompleteRecording;
   }
@@ -455,11 +290,11 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
   static #makeNewRecording(): IncompleteRecording {
     return {
       startTime: Date.now(),
+      endTime: null,
       gameFeatures: null,
       setGameFeaturesResult: null,
       launcherFeatures: null,
       setLauncherFeaturesResult: null,
-      endTime: null,
       timeline: new Map(),
       complete: false
     }
