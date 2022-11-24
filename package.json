@@ -46,7 +46,7 @@
     "jest-watch-typeahead": "^1.0.0",
     "mini-css-extract-plugin": "^2.4.5",
     "node-fetch": "^3.2.6",
-    "ow-libs": "^2.3.0",
+    "ow-libs": "^2.3.6",
     "path-browserify": "^1.0.1",
     "postcss": "^8.4.4",
     "postcss-flexbugs-fixes": "^5.0.2",
