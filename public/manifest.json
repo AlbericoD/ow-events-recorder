@@ -21,7 +21,18 @@
     "DesktopStreaming"
   ],
   "data": {
+    "extra-objects": {
+      "websocket-server-plugin": {
+        "file": "plugins/websocket-server.dll",
+        "class": "com.overwolf.wss.WebSocketServer"
+      }
+    },
     "hotkeys": {
+      "event-recorder-toggle": {
+        "title": "Toggle GEP Recorder",
+        "action-type": "custom",
+        "default": "Ctrl+Shift+T"
+      },
       "event-recorder-start-stop": {
         "title": "Start/Stop GEP Recorder",
         "action-type": "custom",

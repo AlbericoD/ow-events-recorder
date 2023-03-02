@@ -1,6 +1,4 @@
-import { makeNiceState, StateManager } from 'ow-libs';
-
-import { Viewport } from '../constants/types';
+import { makeNiceState, StateManager, Viewport } from 'ow-libs';
 
 export interface PersState {
   mainPositionedFor: Viewport | null,

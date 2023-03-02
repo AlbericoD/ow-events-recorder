@@ -6,7 +6,7 @@ import { kHotkeyServiceName } from '../constants/config';
 // get HotkeysService instance from background window
 const hotkeysService = WindowTunnel.get<HotkeyService>(kHotkeyServiceName);
 
-export function useHotkey(gameId: number, hotkeyName: string) {
+export function useHotkey(hotkeyName: string, gameId?: number) {
   const [binding, setBinding] = useState(() => {
     return hotkeysService.getHotkeyBinding(hotkeyName, gameId);
   });

@@ -6,6 +6,7 @@ export const enum kWindowNames {
 };
 
 export const kHotkeyStartStop = 'event-recorder-start-stop';
+export const kHotkeyToggle = 'event-recorder-toggle';
 
 export const kHotkeyServiceName = 'HotkeyService';
 export const kEventBusName = 'EventBus';

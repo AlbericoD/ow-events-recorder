@@ -2,10 +2,10 @@ import { EventEmitter, delay, log } from 'ow-libs';
 
 import { kLeagueLauncherId } from '../constants/config';
 
-import { IncompleteRecording, CompleteRecording, RecordingEventTypes } from '../constants/types';
+import { RecordingInProgress, Recording, RecordingEventTypes, RecordingEvent, RecordingTimelineRaw, RecordingTimeline } from '../constants/types';
 
 export interface RecorderServiceEvents {
-  onComplete: CompleteRecording
+  onComplete: Recording
 }
 
 const kMaxRetries = 25;
@@ -14,7 +14,7 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
   #launcherFeatures: string[] = [];
   #gameFeatures: string[] = [];
 
-  #recording: IncompleteRecording | CompleteRecording | null = null;
+  #recording: RecordingInProgress | null = null;
 
   get isRecording() {
     return (this.#recording !== null);
@@ -240,23 +240,14 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
     }
   }
 
-  #finishRecording() {
-    if (!this.#recording) {
-      return;
-    }
-
-    this.#recording.endTime = Date.now();
-    this.#recording.complete = true;
-  }
-
   /**
    * Call overwolf.games.events.setRequiredFeatures and bind listeners
    * @see https://overwolf.github.io/docs/api/overwolf-games-events#setrequiredfeaturesfeatures-callback
    */
-  async start(gameFeatures: string[] = [], launcherFeatures: string[] = []) {
+  start(gameFeatures: string[] = [], launcherFeatures: string[] = []) {
     if (this.#recording) {
       console.log('RecorderService.start(): recording already');
-      return;
+      return false;
     }
 
     this.stop();
@@ -267,9 +258,11 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
     this.#setListeners();
 
     this.#recording = RecorderService.#makeNewRecording();
+
+    return true;
   }
 
-  async stop() {
+  stop(): Recording | null {
     if (!this.#recording) {
       console.error('RecorderService.stop(): no recording');
       return null;
@@ -278,16 +271,33 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
     this.#removeListeners();
     this.#removeLauncherEventListeners();
     this.#removeGameEventListeners();
-    this.#finishRecording();
 
-    const recording = this.#recording;
+    const recording: Recording = {
+      ...this.#recording,
+      endTime: Date.now(),
+      complete: true,
+      timelineRaw: null,
+      timeline: RecorderService.#processRawRecording(
+        this.#recording.timelineRaw
+      )
+    };
 
     this.#recording = null;
 
-    return recording as CompleteRecording;
+    return recording;
   }
 
-  static #makeNewRecording(): IncompleteRecording {
+  static #processRawRecording(entries: RecordingTimelineRaw) {
+    const out: RecordingTimeline = [];
+
+    entries.forEach((events, time) => {
+      events.forEach(event => out.push([time, event]));
+    });
+
+    return out;
+  }
+
+  static #makeNewRecording(): RecordingInProgress {
     return {
       startTime: Date.now(),
       endTime: null,
@@ -295,14 +305,14 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
       setGameFeaturesResult: null,
       launcherFeatures: null,
       setLauncherFeaturesResult: null,
-      timeline: new Map(),
+      timelineRaw: new Map(),
       complete: false
-    }
+    };
   }
 
   static isCompletedRecording(
-    recording: IncompleteRecording | CompleteRecording
-  ): recording is CompleteRecording {
+    recording: RecordingInProgress | Recording
+  ): recording is Recording {
     return recording.complete;
   }
 }

@@ -1,7 +1,7 @@
 import { WindowTunnel, EventEmitter, OverwolfWindow } from 'ow-libs';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-import { kEventBusName, kHotkeyStartStop, kWindowNames } from '../../constants/config';
+import { kEventBusName, kHotkeyStartStop, kHotkeyToggle, kWindowNames } from '../../constants/config';
 import { EventBusEvents } from '../../constants/types';
 import { useCommonState } from '../../hooks/use-common-state';
 import { useHotkey } from '../../hooks/use-hotkey';
@@ -12,30 +12,34 @@ import './Main.scss';
 
 const eventBus = WindowTunnel.get<EventEmitter<EventBusEvents>>(kEventBusName);
 
-const win = new OverwolfWindow('main');
-
 export function Main() {
+  const [win] = useState(() => new OverwolfWindow('main'));
+
+  const gameRunningId = useCommonState('gameRunningId');
   const viewport = useCommonState('viewport');
 
-  const positionedFor = usePersState('mainPositionedFor');
+  const positioned = usePersState('mainPositionedFor');
 
-  const { binding: hotkeyStartStop } = useHotkey(kHotkeyStartStop);
+  const { binding: hotkeyStartStop } = useHotkey(
+    kHotkeyStartStop,
+    (gameRunningId !== null) ? gameRunningId : undefined
+  );
+
+  const { binding: hotkeyToggle } = useHotkey(
+    kHotkeyToggle,
+    (gameRunningId !== null) ? gameRunningId : undefined
+  );
 
   useEffect(() => {
     const positionWindow = async () => {
-      if (
-        !positionedFor ||
-        positionedFor.width !== viewport.width ||
-        positionedFor.height !== viewport.height ||
-        positionedFor.scale !== viewport.scale
-      ) {
-        await win.center();
+      if (viewport && positioned?.hash !== viewport.hash) {
+        await win.centerInViewport(viewport);
         eventBus.emit('mainPositionedFor', viewport);
       }
     };
 
     positionWindow();
-  }, [positionedFor, viewport]);
+  }, [positioned, viewport, win]);
 
   return (
     <main className={classNames('Main')}>
@@ -43,40 +47,17 @@ export function Main() {
         <h1 className="app-title">iTero</h1>
 
         {
-          winName === kWindowNames.ingame &&
+          gameRunningId !== null &&
           <div
             className="hotkey"
             onMouseDown={e => e.stopPropagation()}
           >
             Show/Hide&nbsp;
-            <kbd onClick={() => setScreen(Screens.Settings)}>
-              {hotkey}
-            </kbd>
+            <kbd>{hotkeyToggle}</kbd>
           </div>
         }
 
         <div className="window-controls" onMouseDown={e => e.stopPropagation()}>
-          <button
-            className="window-control twitter"
-            onClick={openTwitter}
-          />
-          <button
-            className="window-control discord"
-            onClick={openDiscord}
-          />
-          {
-            winName === kWindowNames.desktop &&
-            isReady &&
-            ftueSeen &&
-            <button
-              className={classNames(
-                'window-control',
-                'settings',
-                { active: (screen === Screens.Settings) }
-              )}
-              onClick={() => setScreen(Screens.Settings)}
-            />
-          }
           <button
             className="window-control minimize"
             onClick={() => win.minimize()}

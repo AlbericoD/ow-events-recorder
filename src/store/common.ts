@@ -1,25 +1,17 @@
-import { makeNiceState, StateManager } from 'ow-libs';
-
-import { Viewport } from '../constants/types';
+import { makeNiceState, StateManager, Viewport } from 'ow-libs';
 
 export interface CommonState {
-  gameRunning: boolean,
-  launcherRunning: boolean,
+  gameRunningId: number | null,
+  launcherRunningId: number | null,
   gameInFocus: boolean,
-  monitors: overwolf.utils.Display[],
-  viewport: Viewport
+  viewport: Viewport | null,
 };
 
 const initialState: CommonState = {
-  gameRunning: false,
-  launcherRunning: false,
+  gameRunningId: null,
+  launcherRunningId: null,
   gameInFocus: false,
-  monitors: [],
-  viewport: {
-    scale: 1,
-    width: -1,
-    height: -1
-  }
+  viewport: null
 };
 
 export const kCommonStoreName = 'common';

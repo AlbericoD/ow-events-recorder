@@ -19,19 +19,27 @@ class BackgroundController {
   }
 
   get gameRunning() {
-    return this.state.gameRunning;
+    return this.state.gameRunningId !== null;
   }
 
-  set gameRunning(v) {
-    this.state.gameRunning = v;
+  get gameRunningId() {
+    return this.state.gameRunningId;
+  }
+
+  set gameRunningId(v) {
+    this.state.gameRunningId = v;
   }
 
   get launcherRunning() {
-    return this.state.launcherRunning;
+    return this.state.launcherRunningId !== null;
   }
 
-  set launcherRunning(v) {
-    this.state.launcherRunning = v;
+  get launcherRunningId() {
+    return this.state.launcherRunningId;
+  }
+
+  set launcherRunningId(v) {
+    this.state.launcherRunningId = v;
   }
 
   get gameInFocus() {
@@ -60,7 +68,7 @@ class BackgroundController {
       this.hotkeyService.start(),
       this.launcherStatus.start(),
       this.gameStatus.start(),
-      this.updateScreens()
+      this.updateViewports()
     ]);
 
     this.eventBus.on({
@@ -73,7 +81,7 @@ class BackgroundController {
     });
 
     this.gameStatus.on({
-      '*': () => this.updateScreens(),
+      '*': () => this.updateViewports(),
       running: () => this.onGameRunningChanged(),
       focus: v => this.gameInFocus = v
     });
@@ -86,6 +94,10 @@ class BackgroundController {
     overwolf.windows.onMainWindowRestored.addListener(() => {
       this.mainWin.restore();
     });
+
+    if (!this.startedWithGame) {
+      this.mainWin.restore();
+    }
 
     console.log('start(): success');
   }
@@ -108,58 +120,36 @@ class BackgroundController {
   async onLauncherRunningChanged() {
     if (!this.launcherRunning && this.launcherStatus.isRunning) {
       console.log('onLauncherRunningChanged(): launcher started');
-      this.launcherRunning = true;
+      this.launcherRunningId = this.launcherStatus.launcherID;
     }
 
     if (this.launcherRunning && !this.launcherStatus.isRunning) {
       console.log('onLauncherRunningChanged(): launcher stopped');
-      this.launcherRunning = false;
+      this.launcherRunningId = null;
     }
   }
 
   async onGameRunningChanged() {
     if (!this.gameRunning && this.gameStatus.isRunning) {
       console.log('onGameRunningChanged(): game started');
-      this.gameRunning = true;
+      this.gameRunningId = this.gameStatus.gameID;
     }
 
     if (this.gameRunning && !this.gameStatus.isRunning) {
       console.log('onGameRunningChanged(): game stopped');
-      this.gameRunning = false;
+      this.gameRunningId = null;
     }
   }
 
-  async updateScreens() {
-    const [
-      viewport,
-      monitors
-    ] = await Promise.all([
-      OverwolfWindow.getViewportSize(),
-      OverwolfWindow.getMonitorsList()
-    ]);
+  async updateViewports() {
+    const viewport = await OverwolfWindow.getPrimaryViewport();
 
-    const
-      scale = window.devicePixelRatio,
-      old = this.state.viewport;
+    const oldViewport = this.state.viewport;
 
-    if (
-      !old ||
-      old.width !== viewport.width ||
-      old.height !== viewport.height ||
-      old.scale !== scale
-    ) {
-      const newViewport = { ...viewport, scale };
+    if (!oldViewport || oldViewport.hash !== viewport?.hash) {
+      this.state.viewport = viewport;
 
-      this.state.viewport = newViewport;
-
-      console.log('updateScreens(): viewport:', ...log(newViewport));
-    }
-
-    if (monitors && monitors.success) {
-      this.state.monitors = monitors.displays;
-      console.log('updateScreens(): monitors:', ...log(monitors.displays));
-    } else {
-      this.state.monitors = [];
+      console.log('updateViewports():', ...log(viewport));
     }
   }
 }

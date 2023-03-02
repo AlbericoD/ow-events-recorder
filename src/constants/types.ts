@@ -1,8 +1,4 @@
-export type Viewport = {
-  scale: number
-  width: number
-  height: number
-}
+import { Viewport } from 'ow-libs'
 
 export type EventBusEvents = {
   mainPositionedFor: Viewport
@@ -73,20 +69,27 @@ export interface RecordingError extends RecordingEvent {
   type: RecordingEventTypes.Error
 }
 
-export type RecordingTimeline = Map<number, RecordingEvent[]>;
+export type RecordingTimelineRaw = Map<number, RecordingEvent[]>;
 
-export interface IncompleteRecording {
+export type RecordingTimeline = [number, RecordingEvent][];
+
+export interface RecordingBase {
   startTime: number
   endTime: number | null
   launcherFeatures: string[] | null
   setLauncherFeaturesResult: overwolf.games.launchers.events.SetRequiredFeaturesResult | null
   gameFeatures: string[] | null
   setGameFeaturesResult: overwolf.games.events.SetRequiredFeaturesResult | null
-  timeline: RecordingTimeline
-  complete: boolean
 }
 
-export interface CompleteRecording extends IncompleteRecording {
+export interface RecordingInProgress extends RecordingBase {
+  timelineRaw: RecordingTimelineRaw
+  complete: false
+}
+
+export interface Recording extends RecordingBase {
   endTime: number
+  timelineRaw: null
+  timeline: RecordingTimeline
   complete: true
 }
