@@ -25,7 +25,8 @@ export function useHotkey(hotkeyName: string, gameId?: number) {
   }
 
   useEffect(() => {
-    const binding = hotkeysService.getHotkeyBinding(hotkeyName, gameId) || 'Unassigned';
+    const binding = hotkeysService.getHotkeyBinding(hotkeyName, gameId)
+      || 'Unassigned';
 
     setBinding(binding);
   }, [gameId, hotkeyName]);
@@ -33,7 +34,8 @@ export function useHotkey(hotkeyName: string, gameId?: number) {
   useEffect(() => {
     const onHotkeyChanged = (e?: HotkeyChangedEvent) => {
       if (e?.name === hotkeyName) {
-        const binding = hotkeysService.getHotkeyBinding(hotkeyName, gameId) || 'Unassigned';
+        const binding = hotkeysService.getHotkeyBinding(hotkeyName, gameId)
+          || 'Unassigned';
 
         setBinding(binding);
       }

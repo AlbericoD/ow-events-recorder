@@ -13,7 +13,7 @@ export class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error: any, errorInfo: any) {
-    console.log('!!! ERROR BOUNDARY TRIGGERED:');
+    console.log('ERROR BOUNDARY TRIGGERED:');
     console.error(error);
     console.error(errorInfo);
     console.log(JSON.stringify(error, null, 2));

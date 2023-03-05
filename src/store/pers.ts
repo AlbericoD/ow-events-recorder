@@ -14,5 +14,7 @@ export const kPersStoreName = 'pers';
 
 /** Store that persists between sessions */
 export const makePersStore = () => {
-  return makeNiceState(new StateManager(kPersStoreName, initialPersState, true));
+  return makeNiceState(
+    new StateManager(kPersStoreName, initialPersState, true)
+  );
 };

@@ -86,8 +86,8 @@ class BackgroundController {
       focus: v => this.gameInFocus = v
     });
 
-    await this.onGameRunningChanged();
-    await this.onLauncherRunningChanged();
+    this.onGameRunningChanged();
+    this.onLauncherRunningChanged();
 
     this.hotkeyService.addListener('pressed', v => this.onHotkeyPressed(v));
 
@@ -117,7 +117,7 @@ class BackgroundController {
     } */
   }
 
-  async onLauncherRunningChanged() {
+  onLauncherRunningChanged() {
     if (!this.launcherRunning && this.launcherStatus.isRunning) {
       console.log('onLauncherRunningChanged(): launcher started');
       this.launcherRunningId = this.launcherStatus.launcherID;
@@ -129,7 +129,7 @@ class BackgroundController {
     }
   }
 
-  async onGameRunningChanged() {
+  onGameRunningChanged() {
     if (!this.gameRunning && this.gameStatus.isRunning) {
       console.log('onGameRunningChanged(): game started');
       this.gameRunningId = this.gameStatus.gameID;

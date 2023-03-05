@@ -154,7 +154,12 @@ export class WebSocketService<T> extends EventEmitter<WebSocketEvents<T>> {
         retry++;
 
         if (retry > 1) {
-          console.log(`Websocket retrying connection, attempt ${retry}/${this.#maxRetries}`);
+          console.log(
+            'Websocket retrying connection, attempt '
+            + retry
+            + '/'
+            + this.#maxRetries
+          );
           await delay(2000);
         }
 

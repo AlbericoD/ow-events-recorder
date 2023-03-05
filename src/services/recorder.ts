@@ -2,10 +2,11 @@ import { EventEmitter, delay, log } from 'ow-libs';
 
 import { kLeagueLauncherId } from '../constants/config';
 
-import { RecordingInProgress, Recording, RecordingEventTypes, RecordingEvent, RecordingTimelineRaw, RecordingTimeline } from '../constants/types';
+import { RecordingInProgress, Recording, RecordingEventTypes, RecordingTimelineRaw, RecordingTimeline } from '../constants/types';
 
 export interface RecorderServiceEvents {
-  onComplete: Recording
+  started: undefined
+  complete: Recording
 }
 
 const kMaxRetries = 25;
@@ -20,10 +21,65 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
     return (this.#recording !== null);
   }
 
+  /**
+   * Call overwolf.games.events.setRequiredFeatures and bind listeners
+   * @see https://overwolf.github.io/docs/api/overwolf-games-events#setrequiredfeaturesfeatures-callback
+   */
+  start(gameFeatures: string[] = [], launcherFeatures: string[] = []) {
+    if (this.#recording) {
+      console.log('RecorderService.start(): recording already');
+      return false;
+    }
+
+    this.stop();
+
+    this.#gameFeatures = gameFeatures;
+    this.#launcherFeatures = launcherFeatures;
+
+    this.#setListeners();
+
+    this.#recording = RecorderService.#makeNewRecording();
+
+    this.emit('started');
+
+    return true;
+  }
+
+  stop(): Recording | null {
+    if (!this.#recording) {
+      console.error('RecorderService.stop(): no recording');
+      return null;
+    }
+
+    this.#removeListeners();
+    this.#removeLauncherEventListeners();
+    this.#removeGameEventListeners();
+
+    const recording: Recording = {
+      ...this.#recording,
+      endTime: Date.now(),
+      complete: true,
+      timelineRaw: null,
+      timeline: RecorderService.#processRawRecording(
+        this.#recording.timelineRaw
+      )
+    };
+
+    this.#recording = null;
+
+    this.emit('complete', recording);
+
+    return recording;
+  }
+
   #removeListeners() {
-    overwolf.games.launchers.onLaunched.removeListener(this.#onLauncherLaunched);
+    overwolf.games.launchers.onLaunched.removeListener(
+      this.#onLauncherLaunched
+    );
     overwolf.games.launchers.onUpdated.removeListener(this.#onLauncherUpdated);
-    overwolf.games.launchers.onTerminated.removeListener(this.#onLauncherTerminated);
+    overwolf.games.launchers.onTerminated.removeListener(
+      this.#onLauncherTerminated
+    );
 
     overwolf.games.onGameLaunched.removeListener(this.#onGameLaunched);
     overwolf.games.onGameInfoUpdated.removeListener(this.#onGameInfoUpdated);
@@ -34,22 +90,32 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
 
     overwolf.games.launchers.onLaunched.addListener(this.#onLauncherLaunched);
     overwolf.games.launchers.onUpdated.addListener(this.#onLauncherUpdated);
-    overwolf.games.launchers.onTerminated.addListener(this.#onLauncherTerminated);
+    overwolf.games.launchers.onTerminated.addListener(
+      this.#onLauncherTerminated
+    );
 
     overwolf.games.onGameLaunched.addListener(this.#onGameLaunched);
     overwolf.games.onGameInfoUpdated.addListener(this.#onGameInfoUpdated);
   }
 
   #removeLauncherEventListeners() {
-    overwolf.games.launchers.events.onInfoUpdates.removeListener(this.#onLauncherInfoUpdate);
-    overwolf.games.launchers.events.onNewEvents.removeListener(this.#onLauncherNewEvent);
+    overwolf.games.launchers.events.onInfoUpdates.removeListener(
+      this.#onLauncherInfoUpdate
+    );
+    overwolf.games.launchers.events.onNewEvents.removeListener(
+      this.#onLauncherNewEvent
+    );
   }
 
   #setLauncherEventListeners() {
     this.#removeLauncherEventListeners();
 
-    overwolf.games.launchers.events.onInfoUpdates.addListener(this.#onLauncherInfoUpdate);
-    overwolf.games.launchers.events.onNewEvents.addListener(this.#onLauncherNewEvent);
+    overwolf.games.launchers.events.onInfoUpdates.addListener(
+      this.#onLauncherInfoUpdate
+    );
+    overwolf.games.launchers.events.onNewEvents.addListener(
+      this.#onLauncherNewEvent
+    );
   }
 
   #removeGameEventListeners() {
@@ -137,7 +203,7 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
 
     const time = Date.now();
 
-    const recordedEvents = this.#recording.timeline.get(time) || [];
+    const recordedEvents = this.#recording.timelineRaw.get(time) || [];
 
     recordedEvents.push({
       type: eventType,
@@ -145,7 +211,7 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
       data: event
     });
 
-    this.#recording.timeline.set(time, recordedEvents);
+    this.#recording.timelineRaw.set(time, recordedEvents);
   }
 
   #tryToSetLauncherRequiredFeatures(): Promise<
@@ -163,7 +229,8 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
   async #setLauncherRequiredFeatures() {
     let
       tries = 0,
-      result: overwolf.games.launchers.events.SetRequiredFeaturesResult | null = null;
+      result:
+        overwolf.games.launchers.events.SetRequiredFeaturesResult | null = null;
 
     while (tries < kMaxRetries) {
       result = await this.#tryToSetLauncherRequiredFeatures();
@@ -190,7 +257,9 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
       this.#setLauncherEventListeners();
     } else {
       console.log(
-        `RecorderService.#setLauncherRequiredFeatures(): failure after ${tries + 1} tries:`,
+        'RecorderService.#setLauncherRequiredFeatures(): failure after '
+        + String(tries + 1)
+        + ' tries:',
         result
       );
     }
@@ -234,57 +303,12 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
       this.#setGameEventListeners();
     } else {
       console.log(
-        `RecorderService.#setGameRequiredFeatures(): failure after ${tries + 1} tries:`,
+        'RecorderService.#setGameRequiredFeatures(): failure after '
+        + String(tries + 1)
+        + ' tries:',
         result
       );
     }
-  }
-
-  /**
-   * Call overwolf.games.events.setRequiredFeatures and bind listeners
-   * @see https://overwolf.github.io/docs/api/overwolf-games-events#setrequiredfeaturesfeatures-callback
-   */
-  start(gameFeatures: string[] = [], launcherFeatures: string[] = []) {
-    if (this.#recording) {
-      console.log('RecorderService.start(): recording already');
-      return false;
-    }
-
-    this.stop();
-
-    this.#gameFeatures = gameFeatures;
-    this.#launcherFeatures = launcherFeatures;
-
-    this.#setListeners();
-
-    this.#recording = RecorderService.#makeNewRecording();
-
-    return true;
-  }
-
-  stop(): Recording | null {
-    if (!this.#recording) {
-      console.error('RecorderService.stop(): no recording');
-      return null;
-    }
-
-    this.#removeListeners();
-    this.#removeLauncherEventListeners();
-    this.#removeGameEventListeners();
-
-    const recording: Recording = {
-      ...this.#recording,
-      endTime: Date.now(),
-      complete: true,
-      timelineRaw: null,
-      timeline: RecorderService.#processRawRecording(
-        this.#recording.timelineRaw
-      )
-    };
-
-    this.#recording = null;
-
-    return recording;
   }
 
   static #processRawRecording(entries: RecordingTimelineRaw) {

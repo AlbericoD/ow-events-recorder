@@ -1,7 +1,7 @@
 import { WindowTunnel, EventEmitter, OverwolfWindow } from 'ow-libs';
 import { useEffect, useState } from 'react';
 
-import { kEventBusName, kHotkeyStartStop, kHotkeyToggle, kWindowNames } from '../../constants/config';
+import { kEventBusName, kHotkeyStartStop, kHotkeyToggle } from '../../constants/config';
 import { EventBusEvents } from '../../constants/types';
 import { useCommonState } from '../../hooks/use-common-state';
 import { useHotkey } from '../../hooks/use-hotkey';
@@ -52,8 +52,7 @@ export function Main() {
             className="hotkey"
             onMouseDown={e => e.stopPropagation()}
           >
-            Show/Hide&nbsp;
-            <kbd>{hotkeyToggle}</kbd>
+            Show/Hide&nbsp;<kbd>{hotkeyToggle}</kbd>
           </div>
         }
 
