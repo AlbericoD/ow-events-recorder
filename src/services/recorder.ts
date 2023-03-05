@@ -1,8 +1,7 @@
 import { EventEmitter, delay, log } from 'ow-libs';
 
+import { Recording, RecordingInProgress, RecordingEventTypes, RecordingTimelineRaw, RecordingTimeline } from '../shared';
 import { kLeagueLauncherId } from '../constants/config';
-
-import { RecordingInProgress, Recording, RecordingEventTypes, RecordingTimelineRaw, RecordingTimeline } from '../constants/types';
 
 export interface RecorderServiceEvents {
   started: undefined

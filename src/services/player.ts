@@ -1,7 +1,7 @@
 import { EventEmitter } from 'ow-libs';
 import { throttle } from 'throttle-debounce';
 
-import { Recording, RecordingEvent } from '../constants/types';
+import { Recording, RecordingEvent } from '../shared';
 
 const kTickInterval = 10; //ms
 
