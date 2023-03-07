@@ -186,7 +186,7 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
   }
 
   #onError = (e: overwolf.games.events.ErrorEvent) => {
-    this.#recordEvent(RecordingEventTypes.Error, e);
+    this.#recordEvent(RecordingEventTypes.GameEventError, e);
   }
 
   #recordEvent(eventType: RecordingEventTypes, event: any) {
