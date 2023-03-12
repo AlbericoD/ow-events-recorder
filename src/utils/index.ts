@@ -29,9 +29,3 @@ export const toFixed = (input: any, fractionDigits: number) => {
 export const capitalize = (input: string) => {
   return input.charAt(0).toUpperCase() + input.slice(1).toLowerCase()
 }
-
-export const getStatTitleFromKey = (key: string) => {
-  return key.split('_')
-    .map(capitalize)
-    .join(' ');
-}

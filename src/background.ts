@@ -1,7 +1,9 @@
 import { EventEmitter, LauncherStatus, GameStatus, HotkeyService, OverwolfWindow, WindowTunnel, log } from 'ow-libs';
 
-import { kWindowNames, kEventBusName, kHotkeyServiceName } from './constants/config';
+import { kWindowNames, kEventBusName, kHotkeyServiceName, kWebSocketServerPorts } from './constants/config';
 import { EventBusEvents } from './constants/types';
+import { WebSocketServer } from './services/web-socket-server';
+import { kWebsocketPath, writeFile, kWebsocketFilePath } from './shared';
 import { makeCommonStore } from './store/common';
 import { makePersStore } from './store/pers';
 
@@ -13,6 +15,7 @@ class BackgroundController {
   readonly state = makeCommonStore();
   readonly persState = makePersStore();
   readonly mainWin = new OverwolfWindow(kWindowNames.main);
+  readonly wss = new WebSocketServer();
 
   get startedWithGame() {
     return window.location.search.includes('source=gamelaunchevent');
@@ -99,6 +102,8 @@ class BackgroundController {
       this.mainWin.restore();
     }
 
+    await this.startWebsocketServer();
+
     console.log('start(): success');
   }
 
@@ -106,6 +111,13 @@ class BackgroundController {
   initTunnels() {
     WindowTunnel.set(kEventBusName, this.eventBus);
     WindowTunnel.set(kHotkeyServiceName, this.hotkeyService);
+  }
+
+  async startWebsocketServer() {
+    await this.wss.startServer(
+      kWebSocketServerPorts,
+      kWebsocketPath
+    );
   }
 
   async onHotkeyPressed(hotkeyName: string) {
