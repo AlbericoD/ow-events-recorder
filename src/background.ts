@@ -1,9 +1,10 @@
-import { EventEmitter, LauncherStatus, GameStatus, HotkeyService, OverwolfWindow, WindowTunnel, log } from 'ow-libs';
+import { EventEmitter, LauncherStatus, GameStatus, OverwolfWindow, WindowTunnel, log } from 'ow-libs';
+import { debounce } from 'throttle-debounce';
 
-import { kWindowNames, kEventBusName, kHotkeyServiceName, kWebSocketServerPorts } from './constants/config';
+import { kWindowNames, kEventBusName } from './constants/config';
 import { EventBusEvents } from './constants/types';
-import { WebSocketServer } from './services/web-socket-server';
-import { kWebsocketPath, writeFile, kWebsocketFilePath } from './shared';
+import { RecorderService } from './services/recorder';
+import { ExtensionMessageEvent, RecordingManager, WSClientMessage, WSServerLoad, WSServerMessage, WSServerMessageTypes, WSServerPause, WSServerPlay, WSServerSetSeek, isWSClientUpdate } from './shared';
 import { makeCommonStore } from './store/common';
 import { makePersStore } from './store/pers';
 
@@ -11,15 +12,13 @@ class BackgroundController {
   readonly eventBus = new EventEmitter<EventBusEvents>();
   readonly launcherStatus = new LauncherStatus();
   readonly gameStatus = new GameStatus();
-  readonly hotkeyService = new HotkeyService();
   readonly state = makeCommonStore();
   readonly persState = makePersStore();
   readonly mainWin = new OverwolfWindow(kWindowNames.main);
-  readonly wss = new WebSocketServer();
+  readonly rs = new RecorderService();
+  readonly rm = new RecordingManager();
 
-  get startedWithGame() {
-    return window.location.search.includes('source=gamelaunchevent');
-  }
+  readonly seekRecordingDebounced = debounce(200, this.seekRecording);
 
   get gameRunning() {
     return this.state.gameRunningId !== null;
@@ -56,27 +55,43 @@ class BackgroundController {
   async start() {
     console.log('start()');
 
+    this.bindAppShutdown();
+
     overwolf.extensions.current.getManifest(e => {
       console.log('start(): app version:', e.meta.version);
     });
 
-    if (this.startedWithGame && !this.persState.enableAutoLaunch) {
-      console.log('start(): autolaunch disabled, closing');
-      return window.close();
-    }
-
     this.initTunnels();
 
     await Promise.all([
-      this.hotkeyService.start(),
       this.launcherStatus.start(),
       this.gameStatus.start(),
+      this.rs.init(),
+      this.updateRecordings(),
       this.updateViewports()
     ]);
 
     this.eventBus.on({
-      mainPositionedFor: v => this.persState.mainPositionedFor = v,
-      setAutoLaunch: v => this.persState.enableAutoLaunch = v
+      mainPositionedFor: vp => this.persState.mainPositionedFor = vp,
+      setScreen: screen => this.persState.screen = screen,
+      setAppSelected: appUID => {
+        this.persState.appSelected = appUID;
+        this.bindClientMessages();
+      },
+
+      record: () => this.startStopRecord(),
+      rename: ({ uid, title }) => this.renameRecording(uid, title),
+      remove: uid => this.removeRecording(uid),
+
+      load: uid => this.loadRecording(uid),
+      play: () => this.playRecording(),
+      pause: () => this.pauseRecording(),
+      seek: seek => this.seekRecordingDebounced(seek)
+    });
+
+    this.rs.on({
+      started: () => this.state.isRecording = true,
+      complete: () => this.state.isRecording = false
     });
 
     this.launcherStatus.addListener('running', () => {
@@ -92,41 +107,142 @@ class BackgroundController {
     this.onGameRunningChanged();
     this.onLauncherRunningChanged();
 
-    this.hotkeyService.addListener('pressed', v => this.onHotkeyPressed(v));
+    if (this.persState.appSelected) {
+      await this.bindClientMessages();
+    }
 
     overwolf.windows.onMainWindowRestored.addListener(() => {
       this.mainWin.restore();
     });
 
-    if (!this.startedWithGame) {
-      this.mainWin.restore();
-    }
-
-    await this.startWebsocketServer();
+    await this.mainWin.restore();
 
     console.log('start(): success');
+  }
+
+  bindAppShutdown() {
+    window.addEventListener('beforeunload', e => {
+      delete e.returnValue;
+
+      console.log('App shutting down');
+    });
   }
 
   /** Make these objects available to all windows via a WindowTunnel */
   initTunnels() {
     WindowTunnel.set(kEventBusName, this.eventBus);
-    WindowTunnel.set(kHotkeyServiceName, this.hotkeyService);
   }
 
-  async startWebsocketServer() {
-    await this.wss.startServer(
-      kWebSocketServerPorts,
-      kWebsocketPath
-    );
+  async bindClientMessages(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.persState.appSelected === null) {
+        console.log('bindClientMessages(): no app selected');
+        reject('no app selected');
+        return
+      }
+
+      overwolf.extensions.registerInfo(
+        this.persState.appSelected,
+        v => this.handleClientMessages(v),
+        result => result.success ? resolve() : reject(result.error)
+      );
+    });
   }
 
-  async onHotkeyPressed(hotkeyName: string) {
-    console.log('onHotkeyPressed():', hotkeyName);
+  async startStopRecord() {
+    if (!this.rs.isRecording) {
+      this.rs.start();
+    } else {
+      const recording = this.rs.stop();
 
-    /* switch (hotkeyName) {
-      case kHotkeyStartStop:
+      if (recording) {
+        await this.rm.set(recording);
+        await this.updateRecordings();
+      }
+    }
+  }
 
-    } */
+  handleClientMessages(event: ExtensionMessageEvent) {
+    console.log('handleClientMessage():', event);
+
+    this.state.clientConnected = Boolean(event.isRunning);
+
+    if (
+      event.success &&
+      this.persState.appSelected === event.id &&
+      event.isRunning &&
+      typeof event.info === 'object'
+    ) {
+      const message: WSClientMessage = event.info;
+
+      if (isWSClientUpdate(message)) {
+        this.state.loaded = message.loaded;
+        this.state.seek = message.seek;
+        this.state.isPlaying = message.playing;
+      }
+    }
+  }
+
+  sendMessageToClient<T extends WSServerMessage>(message: T) {
+    overwolf.extensions.setInfo(message);
+  }
+
+  loadRecording(uid: string) {
+    const { recordings } = this.state;
+
+    const recording = recordings.find(r => r.uid === uid) ?? null;
+
+    this.state.recording = recording;
+
+    if (recording !== null) {
+      this.sendMessageToClient<WSServerLoad>({
+        type: WSServerMessageTypes.Load,
+        recordingUID: uid
+      });
+    }
+  }
+
+  playRecording() {
+    this.sendMessageToClient<WSServerPlay>({
+      type: WSServerMessageTypes.Play
+    });
+  }
+
+  pauseRecording() {
+    this.sendMessageToClient<WSServerPause>({
+      type: WSServerMessageTypes.Pause
+    });
+  }
+
+  seekRecording(seek: number) {
+    console.log(seek);
+
+    this.sendMessageToClient<WSServerSetSeek>({
+      type: WSServerMessageTypes.SetSeek,
+      seek
+    });
+  }
+
+  async updateRecordings() {
+    this.state.recordings = await this.rm.getHeaders();
+  }
+
+  async renameRecording(uid: string, title: string) {
+    const header = await this.rm.getHeader(uid);
+
+    if (header) {
+      header.title = title;
+
+      await this.rm.setHeader(header);
+
+      await this.updateRecordings();
+    }
+  }
+
+  async removeRecording(uid: string) {
+    await this.rm.remove(uid);
+
+    await this.updateRecordings();
   }
 
   onLauncherRunningChanged() {

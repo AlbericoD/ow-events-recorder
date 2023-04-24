@@ -1,0 +1,19 @@
+@mixin scrollable($overflowRule: auto) {
+  overflow-x: hidden;
+  overflow-y: $overflowRule;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #262626;
+    border-radius: 6px;
+
+    &:hover {
+      background: #333333;
+    }
+  }
+}

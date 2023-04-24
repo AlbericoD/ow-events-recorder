@@ -1,34 +1,39 @@
-import { WindowTunnel, EventEmitter, OverwolfWindow } from 'ow-libs';
+import { OverwolfWindow } from 'ow-libs';
 import { useEffect, useState } from 'react';
 
-import { kEventBusName, kHotkeyStartStop, kHotkeyToggle } from '../../constants/config';
-import { EventBusEvents } from '../../constants/types';
+import { kMainScreens } from '../../constants/config';
 import { useCommonState } from '../../hooks/use-common-state';
-import { useHotkey } from '../../hooks/use-hotkey';
 import { usePersState } from '../../hooks/use-pers-state';
-import { classNames } from '../../utils';
+import { eventBus } from '../../services/event-bus';
+
+import { AppHeader } from '../AppHeader/AppHeader';
+import { Play } from '../Play/Play';
+import { Record } from '../Record/Record';
 
 import './Main.scss';
-
-const eventBus = WindowTunnel.get<EventEmitter<EventBusEvents>>(kEventBusName);
 
 export function Main() {
   const [win] = useState(() => new OverwolfWindow('main'));
 
-  const gameRunningId = useCommonState('gameRunningId');
+  const gameInFocus = useCommonState('gameInFocus');
+  // const gameRunningId = useCommonState('gameRunningId');
   const viewport = useCommonState('viewport');
 
+  const screen = usePersState('screen');
   const positioned = usePersState('mainPositionedFor');
 
-  const { binding: hotkeyStartStop } = useHotkey(
-    kHotkeyStartStop,
-    (gameRunningId !== null) ? gameRunningId : undefined
-  );
+  function setScreen(screen: kMainScreens) {
+    eventBus.emit('setScreen', screen);
+  }
 
-  const { binding: hotkeyToggle } = useHotkey(
-    kHotkeyToggle,
-    (gameRunningId !== null) ? gameRunningId : undefined
-  );
+  function renderContent() {
+    switch (screen) {
+      case kMainScreens.Play:
+        return <Play />;
+      case kMainScreens.Record:
+        return <Record />;
+    }
+  }
 
   useEffect(() => {
     const positionWindow = async () => {
@@ -42,33 +47,15 @@ export function Main() {
   }, [positioned, viewport, win]);
 
   return (
-    <main className={classNames('Main')}>
-      <div className="app-header" onMouseDown={() => win.dragMove()}>
-        <h1 className="app-title">iTero</h1>
-
-        {
-          gameRunningId !== null &&
-          <div
-            className="hotkey"
-            onMouseDown={e => e.stopPropagation()}
-          >
-            Show/Hide&nbsp;<kbd>{hotkeyToggle}</kbd>
-          </div>
-        }
-
-        <div className="window-controls" onMouseDown={e => e.stopPropagation()}>
-          <button
-            className="window-control minimize"
-            onClick={() => win.minimize()}
-          />
-          <button
-            className="window-control close"
-            onClick={() => win.close()}
-          />
-        </div>
-      </div>
-
-      {hotkeyStartStop}
+    <main className="Main">
+      <AppHeader
+        screen={screen}
+        onChangeScreen={setScreen}
+        onDrag={() => win.dragMove()}
+        onClose={() => win.close()}
+        onMinimize={() => win.minimize()}
+      />
+      {renderContent()}
     </main>
   );
 }

@@ -11,4 +11,7 @@ export const kHotkeyToggle = 'event-recorder-toggle';
 export const kHotkeyServiceName = 'HotkeyService';
 export const kEventBusName = 'EventBus';
 
-export const kLeagueLauncherId = 10902;
+export enum kMainScreens {
+  Record,
+  Play
+};

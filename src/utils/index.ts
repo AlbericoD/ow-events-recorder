@@ -1,14 +1,21 @@
-export function classNames(...args: any[]) {
+type classNamesArg =
+  string |
+  undefined |
+  Record<string, boolean | null | undefined>;
+
+export function classNames(...args: classNamesArg[]) {
   const classes: string[] = [];
 
   for (const arg of args) {
     if (!arg) continue;
 
-    const argType = typeof arg;
-
-    if (argType === 'string') {
+    if (typeof arg === 'string') {
       classes.push(arg);
-    } else if (arg !== null && argType === 'object' && !Array.isArray(arg)) {
+    } else if (
+      arg !== null &&
+      typeof arg === 'object' &&
+      !Array.isArray(arg)
+    ) {
       Object.entries(arg).forEach(([key, value]) => {
         if (value) {
           classes.push(key);
@@ -20,12 +27,46 @@ export function classNames(...args: any[]) {
   return classes.join(' ');
 }
 
-export const isNumeric = (n: any) => (!isNaN(parseFloat(n)) && isFinite(n));
+export const isNumeric = (n: any) => (!isNaN(parseFloat(n)) && isFinite(n))
 
 export const toFixed = (input: any, fractionDigits: number) => {
   return parseFloat(input as string).toFixed(fractionDigits);
 }
 
 export const capitalize = (input: string) => {
-  return input.charAt(0).toUpperCase() + input.slice(1).toLowerCase()
+  return input.charAt(0).toUpperCase() + input.slice(1).toLowerCase();
+}
+
+export const padNumber = (num: number, length: number) => {
+  var str = num.toString();
+
+  while (str.length < length) {
+    str = '0' + str;
+  }
+
+  return str;
+}
+
+export const formatTime = (ms: number, includeMs = false) => {
+  const
+    hours = Math.floor((ms / (1000 * 60 * 60)) % 24),
+    minutes = Math.floor((ms / (1000 * 60)) % 60),
+    seconds = Math.floor((ms / 1000) % 60),
+    milliseconds = ms % 1000;
+
+  let out = '';
+
+  if (hours > 0) {
+    out += padNumber(hours, 2) + ':';
+  }
+
+  out += padNumber(minutes, 2) + ':';
+
+  out += padNumber(seconds, 2);
+
+  if (includeMs) {
+    out += '.' + padNumber(milliseconds, 3);
+  }
+
+  return out;
 }

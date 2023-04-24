@@ -1,0 +1,94 @@
+.Recording {
+  margin-right: 8px;
+  padding: 8px;
+  line-height: 20px;
+  color: #808080;
+  font-size: 12px;
+  transition: all .2s ease-in-out;
+
+  &:hover {
+    color: #B2B2B2;
+    background: #1A1A1A;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    border-radius: 6px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+  }
+
+  .title {
+    margin-right: 5px;
+    font-weight: 400;
+    font-size: 14px;
+    overflow: hidden;
+    color: #fff;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .rename,
+  .remove {
+    display: flex;
+    align-items: center;
+    margin-right: 5px;
+    color: #808080;
+    visibility: hidden;
+    opacity: 0;
+    transition:
+      color .2s ease-in-out,
+      visibility .2s ease-in-out,
+      opacity .2s ease-in-out;
+
+    &::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 20px;
+      background: url('../../images/edit.svg') center center no-repeat;
+    }
+
+    &:hover {
+      color: #E5E5E5;
+    }
+  }
+
+  &:hover {
+
+    .rename,
+    .remove {
+      visibility: visible;
+      opacity: 1;
+    }
+  }
+
+  .remove::before {
+    background-image: url('../../images/remove.svg');
+  }
+
+  .date {
+    margin-left: auto;
+  }
+
+  .info {
+    display: flex;
+    align-items: center;
+  }
+
+  .games {
+    li {
+      display: inline;
+
+      &:not(:first-child)::before {
+        content: ' · ';
+        display: inline;
+        opacity: .7;
+      }
+    }
+  }
+
+  .duration {
+    margin-left: auto;
+  }
+}

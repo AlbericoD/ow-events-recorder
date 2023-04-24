@@ -1,4 +1,4 @@
-import { log, OverwolfPlugin } from 'ow-libs'
+import { EventEmitter, log, OverwolfPlugin } from 'ow-libs'
 
 type WSSPCallback = (args: overwolf.Result) => void;
 
@@ -11,21 +11,50 @@ interface WebSocketServerPlugin {
   stopServerSync(): void
 }
 
-export class WebSocketServer {
+interface WebSocketServerEvents<MessageType> {
+  message: MessageType
+}
+
+export class WebSocketServer<MessageType>
+  extends EventEmitter<WebSocketServerEvents<MessageType>> {
   #wssp = new OverwolfPlugin<WebSocketServerPlugin>('websocket-server-plugin');
 
   async startServer(
-    ports: number | number[],
+    portOrPorts: number | number[],
     path: string = ''
   ): Promise<number> {
     await this.#wssp.loadPlugin();
 
-    if (typeof ports === 'number') {
-      await this.#startServer(ports, path);
+    let port: number;
 
-      return ports;
+    if (typeof portOrPorts === 'number') {
+      await this.#startServer(portOrPorts, path);
+
+      port = portOrPorts;
     } else {
-      return this.#startServerRange(ports, path);
+      port = await this.#startServerRange(portOrPorts, path);
+    }
+
+    this.#wssp.plugin.onMessageReceived.addListener(this.#handleMessage);
+
+    return port;
+  }
+
+  #handleMessage = (message: string) => {
+    let parsed: MessageType | undefined;
+
+    try {
+      parsed = JSON.parse(message);
+    } catch (e) {
+      console.log(
+        'WebSocketServer.#handleMessage(): error parsing:',
+        message,
+        ...log(e)
+      );
+    }
+
+    if (parsed !== undefined) {
+      this.emit('message', parsed);
     }
   }
 
@@ -33,10 +62,7 @@ export class WebSocketServer {
     port: number,
     path: string = ''
   ): Promise<void> {
-    console.log(...log(
-      `WebSocketServer.startServer(): ${port}${path} launching:`,
-      { port, path }
-    ));
+    console.log(`WebSocketServer.startServer(): ${port}${path} launching:`);
 
     return await new Promise((resolve, reject) => {
       this.#wssp.plugin.startServer(port, path, ({ success, error }) => {
@@ -53,10 +79,7 @@ export class WebSocketServer {
     ports: number[],
     path: string = ''
   ): Promise<number> {
-    console.log(...log(
-      `WebSocketServer.#startServerRange(): ${path} launching:`,
-      { ports, path }
-    ));
+    console.log(`WebSocketServer.#startServerRange(): ${path} launching:`);
 
     await this.#wssp.loadPlugin();
 
@@ -65,9 +88,9 @@ export class WebSocketServer {
         .then(() => true)
         .catch(e => {
           console.log(
-            `WebSocketServer.#startServerRange(): ` +
+            'WebSocketServer.#startServerRange(): ' +
             `couldn't start on port ${port}`,
-            e
+            ...log(e)
           );
 
           return false;

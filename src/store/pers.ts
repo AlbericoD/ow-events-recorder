@@ -1,13 +1,16 @@
 import { makeNiceState, StateManager, Viewport } from 'ow-libs';
+import { kMainScreens } from '../constants/config';
 
 export interface PersState {
-  mainPositionedFor: Viewport | null,
-  enableAutoLaunch: boolean
+  screen: kMainScreens,
+  appSelected: string | null,
+  mainPositionedFor: Viewport | null
 };
 
 export const initialPersState: PersState = {
-  mainPositionedFor: null,
-  enableAutoLaunch: true
+  screen: kMainScreens.Record,
+  appSelected: null,
+  mainPositionedFor: null
 };
 
 export const kPersStoreName = 'pers';

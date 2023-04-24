@@ -2,15 +2,15 @@
   "manifest_version": 1,
   "type": "WebApp",
   "meta": {
-    "name": "event-recorder",
+    "name": "Overwolf ERP",
+    "description": "Overwolf Event Recorder/Player",
     "version": "0.0.1",
     "minimum-overwolf-version": "0.165.0",
     "author": "Overwolf",
     "icon": "icons/dock.png",
     "icon_gray": "icons/dock-gray.png",
     "launcher_icon": "icons/launcher.ico",
-    "window_icon": "icons/dock.png",
-    "description": ""
+    "window_icon": "icons/dock.png"
   },
   "permissions": [
     "Extensions",
@@ -18,27 +18,10 @@
     "GameInfo",
     "Profile",
     "Hotkeys",
-    "DesktopStreaming"
+    "DesktopStreaming",
+    "FileSystem"
   ],
   "data": {
-    "extra-objects": {
-      "websocket-server-plugin": {
-        "file": "plugins/websocket-server.dll",
-        "class": "com.overwolf.wss.WebSocketServer"
-      }
-    },
-    "hotkeys": {
-      "event-recorder-toggle": {
-        "title": "Toggle GEP Recorder",
-        "action-type": "custom",
-        "default": "Ctrl+Shift+T"
-      },
-      "event-recorder-start-stop": {
-        "title": "Start/Stop GEP Recorder",
-        "action-type": "custom",
-        "default": "Ctrl+Shift+R"
-      }
-    },
     "force_browser": "user",
     "start_window": "background",
     "windows": {
@@ -56,7 +39,7 @@
         "override_on_update": true,
         "size": {
           "width": 800,
-          "height": 480
+          "height": 560
         }
       }
     },
@@ -101,56 +84,6 @@
       21960,
       21848,
       215701
-    ],
-    "launch_events": [
-      {
-        "event": "GameLaunch",
-        "event_data": {
-          "game_ids": [
-            10878,
-            7764,
-            7314,
-            21216,
-            5426,
-            10844,
-            10906,
-            10798,
-            6365,
-            9898,
-            10746,
-            10826,
-            21404,
-            10902,
-            21566,
-            21570,
-            10624,
-            21308,
-            21586,
-            5855,
-            7212,
-            21620,
-            765,
-            21634,
-            21640,
-            8032,
-            8954,
-            21626,
-            6350,
-            21668,
-            21666,
-            21816,
-            21672,
-            21856,
-            21854,
-            21328,
-            21876,
-            21960,
-            21848,
-            215701
-          ]
-        },
-        "start_minimized": true
-      }
     ],
     "game_targeting": {
       "type": "dedicated",

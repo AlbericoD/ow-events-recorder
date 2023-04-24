@@ -1,0 +1,76 @@
+.ProgressBar {
+  position: relative;
+  height: 12px;
+  cursor: pointer;
+  contain: layout;
+
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto 0;
+    height: 4px;
+    background-color: #333333;
+    border-radius: 2px;
+    pointer-events: none;
+    transition:
+      height .2s ease-in-out,
+      border-radius .2s ease-in-out;
+  }
+
+  .fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    margin: auto 0;
+    height: 4px;
+    background-color: #D34037;
+    border-radius: 2px;
+    pointer-events: none;
+    transition:
+      height .2s ease-in-out,
+      border-radius .2s ease-in-out;
+    will-change: left, height, border-radius;
+  }
+
+  .handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    margin: auto 0 auto -6px;
+    width: 12px;
+    height: 12px;
+    background-color: #F3513E;
+    border-radius: 50%;
+    pointer-events: none;
+    transition: background-color .2s ease-in-out;
+    will-change: left, background-color;
+  }
+
+  &.disabled {
+    cursor: default;
+
+    .handle {
+      background-color: #808080;
+    }
+  }
+
+  &:not(.disabled):hover {
+
+    &::before,
+    .fill {
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    .handle {
+      background-color: #fff;
+    }
+  }
+}
