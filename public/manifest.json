@@ -33,7 +33,9 @@
       "main": {
         "file": "main.html",
         "transparent": true,
-        "resizable": true,
+        "resizable": false,
+        "desktop_only": true,
+        "native_window": true,
         "show_in_taskbar": true,
         "keep_window_location": true,
         "override_on_update": true,

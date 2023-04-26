@@ -10,11 +10,12 @@ import './Record.scss';
 
 export type RecordProps = {
   className?: string
+  onResize?(): void
 }
 
 const kTimerInterval = 1000 / 24; // 24fps
 
-export function Record({ className }: RecordProps) {
+export function Record({ className, onResize }: RecordProps) {
   const
     isRecording = useCommonState('isRecording'),
     recordings = useCommonState('recordings');
@@ -30,7 +31,9 @@ export function Record({ className }: RecordProps) {
       dayInMs = (24 * 60 * 60 * 1000),
       todayStart = now - (now % dayInMs);
 
-    return recordings.filter(r => r.startTime >= todayStart);
+    return recordings
+      .filter(r => r.startTime >= todayStart)
+      .sort((a, b) => b.startTime - a.startTime);
   }, [recordings]);
 
   function startStopRecord() {
@@ -72,6 +75,8 @@ export function Record({ className }: RecordProps) {
       });
     };
   });
+
+  useEffect(() => onResize, [onResize, showRecordings]);
 
   return (
     <div className={classNames('Record', className)}>

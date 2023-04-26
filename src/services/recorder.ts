@@ -35,10 +35,6 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
       return false;
     }
 
-    if (this.#recording) {
-      this.stop();
-    }
-
     this.#setListeners();
 
     this.#recording = this.#makeNewRecording();
@@ -71,7 +67,7 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
       timeline: RecorderService.#convertRawTimeline(this.#recording.timeline)
     };
 
-    console.log('RecorderService.stop(): complete recording:', this.#recording);
+    console.log('RecorderService.stop(): complete recording:', recording);
 
     this.#recording = null;
 
@@ -93,13 +89,13 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
   }
 
   async #updateUser() {
-    const result = await RecorderService.#getOverwolfProfile();
+    const profile = await RecorderService.#getOverwolfProfile();
 
-    if (result.success && result.username) {
-      this.#author = result.username;
+    if (profile.success && profile.username) {
+      this.#author = profile.username;
 
       if (this.#recording) {
-        this.#recording.author = result.username;
+        this.#recording.author = profile.username;
       }
     }
   }
@@ -321,7 +317,7 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
   async #setLauncherRequiredFeatures() {
     if (this.#launcherId === null) {
       console.log(
-        'RecorderService.#setGameRequiredFeatures(): game not running'
+        'RecorderService.#setLauncherRequiredFeatures(): game not running'
       );
       return;
     }
@@ -330,10 +326,15 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
 
     if (features.length === 0) {
       console.log(
-        'RecorderService.#setGameRequiredFeatures(): no features to set'
+        'RecorderService.#setLauncherRequiredFeatures(): no features to set'
       );
       return;
     }
+
+    console.log(
+      'RecorderService.#setLauncherRequiredFeatures(): features:',
+      features
+    );
 
     let
       tries = 0,
@@ -403,6 +404,11 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
       return;
     }
 
+    console.log(
+      'RecorderService.#setGameRequiredFeatures(): features:',
+      features
+    );
+
     let
       tries = 0,
       result: overwolf.games.events.SetRequiredFeaturesResult | null = null;
@@ -466,7 +472,7 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
       startTime: Date.now(),
       endTime: null,
       title: 'Untitled',
-      author: '',
+      author: this.#author,
       games: {},
       launchers: {},
       timeline: new Map(),

@@ -4,14 +4,19 @@
   display: grid;
   grid-template: "current recordings";
   grid-template-columns: 1fr 380px;
-  width: 100vw;
+  width: 800px;
 
   .current {
+    position: relative;
     grid-area: current;
   }
 
   .recordings {
     grid-area: recordings;
+  }
+
+  .SetClient {
+    margin: 30px;
   }
 
   .play-btn {
@@ -21,7 +26,7 @@
     justify-content: center;
     position: relative;
     margin: 30px 30px 16px 30px;
-    padding-left: 84px;
+    padding-left: 79px;
     min-height: 64px;
 
     line-height: 20px;
@@ -86,6 +91,40 @@
     margin: 16px 30px;
   }
 
+  .actions {
+    position: absolute;
+    left: 30px;
+    right: 30px;
+    bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+
+    button {
+      margin-top: 10px;
+      width: calc(50% - 5px);
+      height: 30px;
+      line-height: 30px;
+      color: #FFFFFF;
+      background-color: #262626;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-align: center;
+      text-transform: uppercase;
+      border-radius: 6px;
+      transition: background-color .2s ease-in-out;
+
+      &:hover {
+        background-color: #333333;
+      }
+
+      &.change-client {
+        width: 100%;
+      }
+    }
+  }
+
   .search {
     position: relative;
     margin-top: 1px;
@@ -93,12 +132,25 @@
   }
 
   .search-input {
+    width: 100%;
     height: 36px;
     padding-left: 44px;
     line-height: 36px;
     font-weight: 400;
     font-size: 14px;
     color: #808080;
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+    transition: all .2s ease-in-out;
+
+    &::placeholder {
+      color: #808080;
+    }
+
+    &:focus {
+      color: #fff;
+      outline-color: #808080;
+    }
   }
 
   .search-clear {
@@ -108,14 +160,37 @@
     width: 44px;
     height: 100%;
     background: url('../../images/clear.svg') center center no-repeat;
+    background-size: 16px;
+  }
+
+  .filters {
+    display: flex;
+    margin-top: 1px;
+    padding: 5px 0 5px 8px;
+    background: #0D0D0D;
+
+    .DropDown {
+      margin-right: 6px;
+      width: 105px;
+    }
   }
 
   .recordings-list {
     margin-top: 1px;
-    padding: 10px 8px 10px 22px;
+    padding: 10px 8px 10px 10px;
     height: 315px;
     background: #0D0D0D;
     @include mixins.scrollable(scroll);
+
+    .date-group {
+      margin: 2px 8px;
+      color: #808080;
+      font-size: 12px;
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
 
     .empty {
       margin-left: 8px;

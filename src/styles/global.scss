@@ -110,7 +110,7 @@ body {
 
 ::selection {
   color: currentColor;
-  background-color: rgba(0, 0, 0, 0.35);
+  background-color: transparentize(#D34037, .667);
   text-shadow: none;
 }
 

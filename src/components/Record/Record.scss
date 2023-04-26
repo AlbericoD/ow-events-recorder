@@ -10,7 +10,7 @@
     justify-content: center;
     position: relative;
     margin: 30px;
-    padding-left: 84px;
+    padding-left: 79px;
     min-height: 64px;
 
     line-height: 20px;
@@ -35,7 +35,7 @@
       border-radius: 50%;
       background:
         #D34037 url('../../images/record.svg') center center no-repeat;
-      box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       transition: all .2s ease-in-out;
     }
 
@@ -65,7 +65,7 @@
     display: flex;
     align-items: center;
     margin-left: 30px;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
     line-height: 18px;
     color: #B2B2B2;
     font-weight: 400;

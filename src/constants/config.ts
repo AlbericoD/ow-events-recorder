@@ -11,6 +11,8 @@ export const kHotkeyToggle = 'event-recorder-toggle';
 export const kHotkeyServiceName = 'HotkeyService';
 export const kEventBusName = 'EventBus';
 
+export const kDefaultLocale = 'en-GB';
+
 export enum kMainScreens {
   Record,
   Play

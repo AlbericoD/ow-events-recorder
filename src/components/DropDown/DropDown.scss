@@ -1,0 +1,131 @@
+@use '../../styles/mixins.scss';
+
+.DropDown {
+  position: relative;
+  width: 150px;
+  height: 30px;
+  color: #ccc;
+  font-size: 12px;
+
+  .selected {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    width: 100%;
+    padding-left: 8px;
+    padding-right: 30px;
+    line-height: 30px;
+    border-radius: 6px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    background-color: #262626;
+    cursor: pointer;
+    transition: all .2s ease-in-out;
+
+    &.placeholder {
+      color: #999;
+    }
+
+    &:hover {
+      background-color: #333333;
+    }
+
+    &:after {
+      content: '';
+      display: block;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 3;
+      width: 30px;
+      background: url('../../images/dropdown-arrow.svg') center center no-repeat;
+      transition: transform .2s ease-in-out;
+      pointer-events: none;
+    }
+  }
+
+  &.open .selected {
+    border-radius: 6px 6px 0 0;
+
+    &:after {
+      transform: rotate(180deg);
+    }
+  }
+
+  .options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    border-radius: 6px;
+    background: #454545;
+    border-radius: 0 0 6px 6px;
+    transform-origin: 0 0;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    @include mixins.scrollable;
+
+    &-enter {
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+
+    &-enter-active {
+      opacity: 1;
+      transform: none;
+      transition:
+        opacity .2s ease-in-out,
+        transform .2s ease-in-out;
+    }
+
+    &-exit {
+      opacity: 1;
+      transform: none;
+    }
+
+    &-exit-active {
+      opacity: 0;
+      transform: translateY(-30px);
+      transition:
+        opacity .2s ease-in-out,
+        transform .2s ease-in-out;
+    }
+  }
+
+  .option {
+    display: block;
+    width: 100%;
+    position: relative;
+    padding-left: 8px;
+    line-height: 30px;
+    background: #454545;
+    cursor: pointer;
+    transition:
+      color .2s ease-in-out,
+      background-color .2s ease-in-out;
+
+    &:hover {
+      color: #fff;
+      background: #4f4f4f;
+    }
+
+    &.chosen {
+      background:
+        #454545 url('../../images/tick.svg') right 5px center no-repeat;
+    }
+
+    &.not-found {
+      pointer-events: none;
+    }
+
+    &:not(:last-child) {
+      border-bottom: 1px solid #58595B;
+    }
+  }
+}

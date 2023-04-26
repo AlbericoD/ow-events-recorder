@@ -1,0 +1,48 @@
+.DatePicker {
+  position: relative;
+  height: 30px;
+  color: #ccc;
+  padding-left: 6px;
+  line-height: 30px;
+  font-size: 12px;
+  border-radius: 6px;
+  background-color: #262626;
+  font-feature-settings: 'tnum' on, 'lnum' on;
+
+  &::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background: url('../../images/calendar.svg') center center no-repeat;
+    background-size: 14px;
+    cursor: pointer;
+    transition: background-color .2s ease-in-out;
+
+    &:hover {
+      background-color: #333;
+    }
+  }
+
+  &::-webkit-datetime-edit-day-field,
+  &::-webkit-datetime-edit-month-field,
+  &::-webkit-datetime-edit-year-field {
+    padding: 2px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color .2s ease-in-out;
+    text-align: center;
+
+    &:hover {
+      background-color: #333;
+    }
+
+    &:focus {
+      color: #fff;
+      background-color: transparentize(#D34037, .667);
+    }
+  }
+}

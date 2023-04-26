@@ -3,13 +3,13 @@ import { kMainScreens } from '../constants/config';
 
 export interface PersState {
   screen: kMainScreens,
-  appSelected: string | null,
+  clientUID: string | null,
   mainPositionedFor: Viewport | null
 };
 
 export const initialPersState: PersState = {
   screen: kMainScreens.Record,
-  appSelected: null,
+  clientUID: null,
   mainPositionedFor: null
 };
 

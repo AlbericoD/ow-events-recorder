@@ -1,5 +1,5 @@
 import { OverwolfWindow } from 'ow-libs';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { kMainScreens } from '../../constants/config';
 import { useCommonState } from '../../hooks/use-common-state';
@@ -12,42 +12,52 @@ import { Record } from '../Record/Record';
 
 import './Main.scss';
 
-export function Main() {
-  const [win] = useState(() => new OverwolfWindow('main'));
+const win = new OverwolfWindow('main');
 
-  const gameInFocus = useCommonState('gameInFocus');
+export function Main() {
+  // const gameInFocus = useCommonState('gameInFocus');
   // const gameRunningId = useCommonState('gameRunningId');
   const viewport = useCommonState('viewport');
 
   const screen = usePersState('screen');
   const positioned = usePersState('mainPositionedFor');
 
+  const mainEl = useRef<HTMLElement | null>(null);
+
   function setScreen(screen: kMainScreens) {
     eventBus.emit('setScreen', screen);
   }
+
+  const adjustWindow = useCallback(async () => {
+    if (mainEl.current) {
+      await win.changeSize(
+        mainEl.current.clientWidth,
+        mainEl.current.clientHeight,
+        false
+      );
+    }
+
+    if (viewport && positioned?.hash !== viewport.hash) {
+      await win.centerInViewport(viewport);
+      eventBus.emit('mainPositionedFor', viewport);
+    }
+  }, [positioned?.hash, viewport]);
+
+  useEffect(() => {
+    adjustWindow();
+  }, [adjustWindow, screen]);
 
   function renderContent() {
     switch (screen) {
       case kMainScreens.Play:
         return <Play />;
       case kMainScreens.Record:
-        return <Record />;
+        return <Record onResize={adjustWindow} />;
     }
   }
 
-  useEffect(() => {
-    const positionWindow = async () => {
-      if (viewport && positioned?.hash !== viewport.hash) {
-        await win.centerInViewport(viewport);
-        eventBus.emit('mainPositionedFor', viewport);
-      }
-    };
-
-    positionWindow();
-  }, [positioned, viewport, win]);
-
   return (
-    <main className="Main">
+    <main className="Main" ref={mainEl}>
       <AppHeader
         screen={screen}
         onChangeScreen={setScreen}

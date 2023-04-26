@@ -18,7 +18,7 @@ class BackgroundController {
   readonly rs = new RecorderService();
   readonly rm = new RecordingManager();
 
-  readonly seekRecordingDebounced = debounce(200, this.seekRecording);
+  readonly seekDebounced = debounce(200, this.seek);
 
   get gameRunning() {
     return this.state.gameRunningId !== null;
@@ -67,26 +67,25 @@ class BackgroundController {
       this.launcherStatus.start(),
       this.gameStatus.start(),
       this.rs.init(),
-      this.updateRecordings(),
+      this.updateRecordingsList(),
       this.updateViewports()
     ]);
 
     this.eventBus.on({
       mainPositionedFor: vp => this.persState.mainPositionedFor = vp,
       setScreen: screen => this.persState.screen = screen,
-      setAppSelected: appUID => {
-        this.persState.appSelected = appUID;
+      setClientUID: uid => {
+        this.persState.clientUID = uid;
         this.bindClientMessages();
       },
 
-      record: () => this.startStopRecord(),
-      rename: ({ uid, title }) => this.renameRecording(uid, title),
-      remove: uid => this.removeRecording(uid),
+      record: () => this.toggleRecord(),
+      rename: ({ uid, title }) => this.rename(uid, title),
+      remove: uid => this.remove(uid),
 
-      load: uid => this.loadRecording(uid),
-      play: () => this.playRecording(),
-      pause: () => this.pauseRecording(),
-      seek: seek => this.seekRecordingDebounced(seek)
+      load: uid => this.load(uid),
+      playPause: () => this.togglePlay(),
+      seek: seek => this.seekDebounced(seek)
     });
 
     this.rs.on({
@@ -107,9 +106,7 @@ class BackgroundController {
     this.onGameRunningChanged();
     this.onLauncherRunningChanged();
 
-    if (this.persState.appSelected) {
-      await this.bindClientMessages();
-    }
+    await this.bindClientMessages();
 
     overwolf.windows.onMainWindowRestored.addListener(() => {
       this.mainWin.restore();
@@ -133,32 +130,35 @@ class BackgroundController {
     WindowTunnel.set(kEventBusName, this.eventBus);
   }
 
-  async bindClientMessages(): Promise<void> {
+  bindClientMessages(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (this.persState.appSelected === null) {
+      if (this.persState.clientUID === null) {
         console.log('bindClientMessages(): no app selected');
-        reject('no app selected');
-        return
+        return resolve();
       }
 
       overwolf.extensions.registerInfo(
-        this.persState.appSelected,
+        this.persState.clientUID,
         v => this.handleClientMessages(v),
         result => result.success ? resolve() : reject(result.error)
       );
     });
   }
 
-  async startStopRecord() {
-    if (!this.rs.isRecording) {
-      this.rs.start();
-    } else {
+  async toggleRecord() {
+    if (this.state.isPlaying) {
+      console.log('startStop(): currently playing');
+    }
+
+    if (this.rs.isRecording || this.state.isPlaying) {
       const recording = this.rs.stop();
 
       if (recording) {
         await this.rm.set(recording);
-        await this.updateRecordings();
+        await this.updateRecordingsList();
       }
+    } else {
+      this.rs.start();
     }
   }
 
@@ -169,7 +169,7 @@ class BackgroundController {
 
     if (
       event.success &&
-      this.persState.appSelected === event.id &&
+      this.persState.clientUID === event.id &&
       event.isRunning &&
       typeof event.info === 'object'
     ) {
@@ -184,10 +184,17 @@ class BackgroundController {
   }
 
   sendMessageToClient<T extends WSServerMessage>(message: T) {
+    console.log('sendMessageToClient():', message);
+
     overwolf.extensions.setInfo(message);
   }
 
-  loadRecording(uid: string) {
+  load(uid: string) {
+    if (this.rs.isRecording) {
+      console.log('load(): currently recording');
+      return;
+    }
+
     const { recordings } = this.state;
 
     const recording = recordings.find(r => r.uid === uid) ?? null;
@@ -202,20 +209,24 @@ class BackgroundController {
     }
   }
 
-  playRecording() {
-    this.sendMessageToClient<WSServerPlay>({
-      type: WSServerMessageTypes.Play
-    });
+  togglePlay() {
+    if (this.rs.isRecording) {
+      console.log('togglePlay(): currently recording');
+    }
+
+    if (this.state.isPlaying || this.rs.isRecording) {
+      this.sendMessageToClient<WSServerPause>({
+        type: WSServerMessageTypes.Pause
+      });
+    } else {
+      this.sendMessageToClient<WSServerPlay>({
+        type: WSServerMessageTypes.Play
+      });
+    }
   }
 
-  pauseRecording() {
-    this.sendMessageToClient<WSServerPause>({
-      type: WSServerMessageTypes.Pause
-    });
-  }
-
-  seekRecording(seek: number) {
-    console.log(seek);
+  seek(seek: number) {
+    console.log('seek():', seek);
 
     this.sendMessageToClient<WSServerSetSeek>({
       type: WSServerMessageTypes.SetSeek,
@@ -223,26 +234,30 @@ class BackgroundController {
     });
   }
 
-  async updateRecordings() {
+  async updateRecordingsList() {
     this.state.recordings = await this.rm.getHeaders();
   }
 
-  async renameRecording(uid: string, title: string) {
+  async rename(uid: string, title: string) {
     const header = await this.rm.getHeader(uid);
+
+    console.log('rename():', uid, header, header?.title, title);
 
     if (header) {
       header.title = title;
 
       await this.rm.setHeader(header);
 
-      await this.updateRecordings();
+      await this.updateRecordingsList();
     }
   }
 
-  async removeRecording(uid: string) {
+  async remove(uid: string) {
+    console.log('remove():', uid);
+
     await this.rm.remove(uid);
 
-    await this.updateRecordings();
+    await this.updateRecordingsList();
   }
 
   onLauncherRunningChanged() {

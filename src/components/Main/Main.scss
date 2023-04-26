@@ -3,10 +3,10 @@
   color: #fff;
   background: #1A1A1A;
   background-size: cover;
-  border-radius: 8px;
+  // border-radius: 8px;
   overflow: hidden;
 
-  &::after {
+  /* &::after {
     content: '';
     display: block;
     position: absolute;
@@ -18,5 +18,5 @@
     border-radius: 8px;
     pointer-events: none;
     contain: strict;
-  }
+  } */
 }

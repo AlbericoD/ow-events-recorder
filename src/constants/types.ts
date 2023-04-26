@@ -4,15 +4,14 @@ import { kMainScreens } from './config'
 export type EventBusEvents = {
   mainPositionedFor: Viewport
   setScreen: kMainScreens
-  setAppSelected: string
+  setClientUID: string | null
 
   record: void
   rename: { uid: string, title: string }
   remove: string
 
   load: string
-  play: void
-  pause: void
+  playPause: void
   seek: number
 }
 

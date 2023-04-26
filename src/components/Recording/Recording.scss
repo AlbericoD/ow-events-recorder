@@ -6,11 +6,20 @@
   font-size: 12px;
   transition: all .2s ease-in-out;
 
+  &.clickable {
+    cursor: pointer;
+  }
+
+  &.selected,
   &:hover {
     color: #B2B2B2;
     background: #1A1A1A;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
     border-radius: 6px;
+  }
+
+  &:hover {
+    background: #1a1a1a80;
   }
 
   .header {
@@ -19,13 +28,34 @@
   }
 
   .title {
-    margin-right: 5px;
+    padding: 0 4px;
+    margin: 0 3px 0 -4px;
     font-weight: 400;
     font-size: 14px;
     overflow: hidden;
     color: #fff;
     text-overflow: ellipsis;
     white-space: nowrap;
+    caret-color: white;
+    cursor: text;
+    outline: 0 solid transparent;
+    outline-offset: 1px;
+    border-radius: 1px;
+    transition: all .1s ease-in-out;
+
+    &:hover {
+      outline: 1px solid #333333;
+    }
+
+    &[contenteditable=true]:focus {
+      outline: 1px solid #808080;
+      background-color: #000;
+    }
+  }
+
+  &.playing .title::before {
+    content: url('../../images/play-small.svg');
+    display: inline-block;
   }
 
   .rename,
@@ -42,16 +72,21 @@
       opacity .2s ease-in-out;
 
     &::before {
-      content: '';
+      content: url('../../images/edit.svg');
       display: block;
       width: 20px;
       height: 20px;
-      background: url('../../images/edit.svg') center center no-repeat;
+      object-fit: none;
+      object-position: center center;
     }
 
     &:hover {
       color: #E5E5E5;
     }
+  }
+
+  .remove::before {
+    content: url('../../images/remove.svg');
   }
 
   &:hover {
@@ -61,10 +96,6 @@
       visibility: visible;
       opacity: 1;
     }
-  }
-
-  .remove::before {
-    background-image: url('../../images/remove.svg');
   }
 
   .date {
