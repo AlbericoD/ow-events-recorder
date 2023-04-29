@@ -1,10 +1,11 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import { useCommonState } from '../../hooks/use-common-state';
 import { usePersState } from '../../hooks/use-pers-state';
 import { eventBus } from '../../services/event-bus';
 import { classNames, formatTime } from '../../utils';
 import { RecordingHeader } from '../../shared';
+import { kDefaultLocale } from '../../constants/config';
 
 import { Recording } from '../Recording/Recording';
 import { ProgressBar } from '../ProgressBar/ProgressBar';
@@ -13,7 +14,6 @@ import { DropDown, DropDownOption } from '../DropDown/DropDown';
 import { DatePicker } from '../DatePicker/DatePicker';
 
 import './Play.scss';
-import { kDefaultLocale } from '../../constants/config';
 
 export type PlayProps = {
   className?: string
@@ -21,11 +21,12 @@ export type PlayProps = {
 
 export function Play({ className }: PlayProps) {
   const
-    clientConnected = useCommonState('clientConnected'),
     isPlaying = useCommonState('isPlaying'),
     recordings = useCommonState('recordings'),
     recording = useCommonState('recording'),
-    seek = useCommonState('seek');
+    connected = useCommonState('playerConnected'),
+    seek = useCommonState('playerSeek'),
+    loaded = useCommonState('playerLoaded');
 
   const clientUID = usePersState('clientUID');
 
@@ -47,7 +48,7 @@ export function Play({ className }: PlayProps) {
     }));
 
     return [
-      { title: 'Any Game', value: null },
+      { title: 'Any game', value: null },
       ...options
     ];
   }, [recordings]);
@@ -66,14 +67,14 @@ export function Play({ className }: PlayProps) {
       .map(v => ({ title: v, value: v }));
 
     return [
-      { title: 'Any Author', value: null },
+      { title: 'Any author', value: null },
       ...options
     ];
   }, [recordings]);
 
   const controlsEnabled = useMemo(
-    () => Boolean(recording && clientConnected),
-    [clientConnected, recording]
+    () => Boolean(recording && connected && loaded),
+    [connected, loaded, recording]
   );
 
   const length = useMemo(() => {
@@ -85,43 +86,41 @@ export function Play({ className }: PlayProps) {
   const filtered = useMemo(() => {
     const searchSane = search.trim().toLowerCase();
 
-    return recordings
-      .filter(v => {
-        if (searchSane && !v.title.trim().toLowerCase().includes(searchSane)) {
-          return false;
-        }
+    return recordings.filter(r => {
+      if (searchSane && !r.title.trim().toLowerCase().includes(searchSane)) {
+        return false;
+      }
+
+      if (
+        gameFilter !== null && (
+          r.games[gameFilter] === undefined &&
+          r.launchers[gameFilter] === undefined
+        )
+      ) {
+        return false;
+      }
+
+      if (authorFilter && r.author !== authorFilter) {
+        return false;
+      }
+
+      if (dateFilter) {
+        const dateString = dateFilter.toDateString();
 
         if (
-          gameFilter && (
-            v.games[gameFilter] === undefined ||
-            v.launchers[gameFilter] === undefined
-          )
+          new Date(r.startTime).toDateString() !== dateString ||
+          new Date(r.endTime).toDateString() !== dateString
         ) {
           return false;
         }
+      }
 
-        if (authorFilter && v.author !== authorFilter) {
-          return false;
-        }
-
-        if (dateFilter) {
-          const dateString = dateFilter.toDateString();
-
-          if (
-            new Date(v.startTime).toDateString() !== dateString ||
-            new Date(v.endTime).toDateString() !== dateString
-          ) {
-            return false;
-          }
-        }
-
-        return true;
-      })
-      .sort((a, b) => b.startTime - a.startTime);
+      return true;
+    });
   }, [authorFilter, dateFilter, gameFilter, recordings, search]);
 
   const buttonText = useMemo(() => {
-    if (!clientConnected) {
+    if (!connected) {
       return 'Client app is not running';
     }
 
@@ -129,23 +128,31 @@ export function Play({ className }: PlayProps) {
       return 'Select a recording';
     }
 
+    if (!loaded) {
+      return 'Loading…';
+    }
+
     if (isPlaying) {
       return 'Stop';
     }
 
     return `Play «${recording.title}»`;
-  }, [clientConnected, isPlaying, recording]);
+  }, [connected, isPlaying, loaded, recording]);
 
-  function playPause() {
-    eventBus.emit('playPause');
+  function resetClientUID() {
+    eventBus.emit('setClientUID', null);
   }
 
   function loadRecording(uid: string) {
     eventBus.emit('load', uid);
   }
 
-  function resetClientUID() {
-    eventBus.emit('setClientUID', null);
+  function playPause() {
+    eventBus.emit('playPause');
+  }
+
+  function setSeek(v: number) {
+    eventBus.emit('seek', v * length);
   }
 
   function renderControls() {
@@ -217,10 +224,6 @@ export function Play({ className }: PlayProps) {
         onClick={() => loadRecording(v.uid)}
       />
     );
-  }
-
-  function setSeek(seek: number) {
-    eventBus.emit('seek', seek * length);
   }
 
   return (

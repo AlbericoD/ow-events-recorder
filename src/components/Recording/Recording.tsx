@@ -110,7 +110,7 @@ export function Recording({
 
         <button
           className="remove"
-          onClick={() => handleRemoveClick}
+          onClick={handleRemoveClick}
         >Delete</button>
 
         <time className="date">

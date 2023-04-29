@@ -5,7 +5,7 @@ import { Recording, RecordingInProgress, RecordingEventTypes, RecordingTimelineR
 import { OverwolfGameFeatures } from '../constants/types';
 
 export interface RecorderServiceEvents {
-  started: void
+  started: number
   complete: Recording
 }
 
@@ -41,7 +41,7 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
 
     console.log('RecorderService.start(): new recording:', this.#recording);
 
-    this.emit('started');
+    this.emit('started', this.#recording.startTime);
 
     return true;
   }

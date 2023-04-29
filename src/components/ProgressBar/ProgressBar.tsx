@@ -19,10 +19,12 @@ export function ProgressBar({
 }: ProgressBarProps) {
   const [userValue, setUserValue] = useState(0);
   const [mouseDown, setMouseDown] = useState(false);
+  const [changing, setChanging] = useState(false);
 
   const elRef = useRef<HTMLDivElement>(null);
 
-  const perc = `${(mouseDown ? userValue : value) * 100}%`;
+  const perc = `${((mouseDown || changing) ? userValue : value) * 100}%`;
+  const valuePerc = `${value * 100}%`;
 
   const onMouseDown = (e: MouseEvent) => {
     onMouseMoved(e);
@@ -45,6 +47,7 @@ export function ProgressBar({
     setUserValue(newValue);
 
     if (fireEvent) {
+      setChanging(true);
       onChange(newValue);
     }
   }, [disabled, mouseDown, onChange]);
@@ -53,6 +56,8 @@ export function ProgressBar({
     onMouseMoved(e, true);
     setMouseDown(false);
   }, [onMouseMoved]);
+
+  useEffect(() => setChanging(false), [value]);
 
   useEffect(() => {
     if (mouseDown) {
@@ -76,11 +81,15 @@ export function ProgressBar({
 
   return (
     <div
-      className={classNames('ProgressBar', className, { disabled })}
+      className={classNames(
+        'ProgressBar',
+        className,
+        { disabled, 'mouse-down': mouseDown, changing }
+      )}
       onMouseDown={e => onMouseDown(e.nativeEvent)}
       ref={elRef}
     >
-      <div className="fill" style={{ width: perc }} />
+      <div className="fill" style={{ width: valuePerc }} />
       {!disabled && <div className="handle" style={{ left: perc }} />}
     </div>
   );

@@ -14,12 +14,13 @@
     right: 0;
     margin: auto 0;
     height: 4px;
-    background-color: #333333;
+    background-color: #333;
     border-radius: 2px;
     pointer-events: none;
     transition:
       height .2s ease-in-out,
-      border-radius .2s ease-in-out;
+      border-radius .2s ease-in-out,
+      background-color .2s ease-in-out;
   }
 
   .fill {
@@ -32,10 +33,26 @@
     background-color: #D34037;
     border-radius: 2px;
     pointer-events: none;
-    transition:
-      height .2s ease-in-out,
-      border-radius .2s ease-in-out;
-    will-change: left, height, border-radius;
+    transition: all .2s ease-in-out;
+  }
+
+  @keyframes ProgressBar-fill-changing {
+    from {
+      background-position: -8px 0;
+    }
+
+    to {
+      background-position: 0 0;
+    }
+  }
+
+  &.changing .fill {
+    animation: ProgressBar-fill-changing .2s infinite;
+    background: repeating-linear-gradient(45deg,
+        #D34037,
+        #D34037 4px,
+        #F3513E 4px,
+        #F3513E 8px);
   }
 
   .handle {
@@ -50,16 +67,28 @@
     border-radius: 50%;
     pointer-events: none;
     transition: background-color .2s ease-in-out;
-    will-change: left, background-color;
+  }
+
+  &:not(.mouse-down) .handle {
+    transition:
+      background-color .2s ease-in-out,
+      left .2s ease-in-out;
   }
 
   &.disabled {
     cursor: default;
 
+    .fill,
     .handle {
-      background-color: #808080;
+      display: none;
     }
   }
+
+  // &.changing {
+  //   .handle {
+  //     display: none;
+  //   }
+  // }
 
   &:not(.disabled):hover {
 

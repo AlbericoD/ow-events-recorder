@@ -20,6 +20,8 @@ class BackgroundController {
 
   readonly seekDebounced = debounce(200, this.seek);
 
+  messageID = 0;
+
   get gameRunning() {
     return this.state.gameRunningId !== null;
   }
@@ -89,8 +91,14 @@ class BackgroundController {
     });
 
     this.rs.on({
-      started: () => this.state.isRecording = true,
-      complete: () => this.state.isRecording = false
+      started: time => {
+        this.state.isRecording = true;
+        this.state.recordingStartedOn = time;
+      },
+      complete: () => {
+        this.state.isRecording = false;
+        this.state.recordingStartedOn = -1;
+      }
     });
 
     this.launcherStatus.addListener('running', () => {
@@ -122,6 +130,11 @@ class BackgroundController {
       delete e.returnValue;
 
       console.log('App shutting down');
+
+      if (this.rs.isRecording) {
+        console.log('App is recording, stopping to save');
+        this.rs.stop();
+      }
     });
   }
 
@@ -147,7 +160,8 @@ class BackgroundController {
 
   async toggleRecord() {
     if (this.state.isPlaying) {
-      console.log('startStop(): currently playing');
+      console.log('toggleRecord(): currently playing');
+      return;
     }
 
     if (this.rs.isRecording || this.state.isPlaying) {
@@ -165,10 +179,9 @@ class BackgroundController {
   handleClientMessages(event: ExtensionMessageEvent) {
     console.log('handleClientMessage():', event);
 
-    this.state.clientConnected = Boolean(event.isRunning);
+    this.state.playerConnected = Boolean(event.isRunning);
 
     if (
-      event.success &&
       this.persState.clientUID === event.id &&
       event.isRunning &&
       typeof event.info === 'object'
@@ -176,17 +189,24 @@ class BackgroundController {
       const message: WSClientMessage = event.info;
 
       if (isWSClientUpdate(message)) {
-        this.state.loaded = message.loaded;
-        this.state.seek = message.seek;
+        this.state.playerLoaded = message.loaded;
+        this.state.playerSeek = message.seek;
         this.state.isPlaying = message.playing;
       }
     }
   }
 
-  sendMessageToClient<T extends WSServerMessage>(message: T) {
-    console.log('sendMessageToClient():', message);
+  sendMessageToClient<T extends WSServerMessage>(
+    message: Omit<T, 'messageID'>
+  ) {
+    const messageWithID = {
+      messageID: this.messageID++,
+      ...message
+    };
 
-    overwolf.extensions.setInfo(message);
+    console.log('sendMessageToClient():', messageWithID);
+
+    overwolf.extensions.setInfo(messageWithID);
   }
 
   load(uid: string) {
@@ -212,9 +232,20 @@ class BackgroundController {
   togglePlay() {
     if (this.rs.isRecording) {
       console.log('togglePlay(): currently recording');
+      return;
     }
 
-    if (this.state.isPlaying || this.rs.isRecording) {
+    if (!this.state.playerConnected) {
+      console.log('togglePlay(): currently recording');
+      return;
+    }
+
+    if (!this.state.playerLoaded) {
+      console.log('togglePlay(): player not loaded');
+      return;
+    }
+
+    if (this.state.isPlaying) {
       this.sendMessageToClient<WSServerPause>({
         type: WSServerMessageTypes.Pause
       });
@@ -226,8 +257,6 @@ class BackgroundController {
   }
 
   seek(seek: number) {
-    console.log('seek():', seek);
-
     this.sendMessageToClient<WSServerSetSeek>({
       type: WSServerMessageTypes.SetSeek,
       seek

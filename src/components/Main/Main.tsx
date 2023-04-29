@@ -1,5 +1,5 @@
 import { OverwolfWindow } from 'ow-libs';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { kMainScreens } from '../../constants/config';
 import { useCommonState } from '../../hooks/use-common-state';

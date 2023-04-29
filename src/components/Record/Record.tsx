@@ -13,11 +13,12 @@ export type RecordProps = {
   onResize?(): void
 }
 
-const kTimerInterval = 1000 / 24; // 24fps
+const kTimerInterval = 1000 / 30; // 30fps
 
 export function Record({ className, onResize }: RecordProps) {
   const
     isRecording = useCommonState('isRecording'),
+    recordingStartedOn = useCommonState('recordingStartedOn'),
     recordings = useCommonState('recordings');
 
   const [elapsed, setElapsed] = useState('');
@@ -31,52 +32,50 @@ export function Record({ className, onResize }: RecordProps) {
       dayInMs = (24 * 60 * 60 * 1000),
       todayStart = now - (now % dayInMs);
 
-    return recordings
-      .filter(r => r.startTime >= todayStart)
-      .sort((a, b) => b.startTime - a.startTime);
+    return recordings.filter(r => r.startTime >= todayStart);
   }, [recordings]);
 
   function startStopRecord() {
     eventBus.emit('record');
   }
 
-  useEffect(() => {
-    if (isRecording) {
-      const startTime = Date.now();
+  function clearTimer() {
+    setTimerHandle(handle => {
+      if (handle !== null) {
+        window.clearInterval(handle);
+      }
 
+      return null;
+    });
+  }
+
+  useEffect(() => {
+    if (recordingStartedOn > -1) {
       setTimerHandle(handle => {
         if (handle !== null) {
           window.clearInterval(handle);
         }
 
         return window.setInterval(() => {
-          setElapsed(formatTime(Date.now() - startTime, true));
+          const ms = Date.now() - recordingStartedOn;
+
+          console.log({ms});
+
+          setElapsed(formatTime(ms, true));
         }, kTimerInterval);
       });
     } else {
-      setTimerHandle(handle => {
-        if (handle !== null) {
-          window.clearInterval(handle);
-        }
-
-        return null;
-      });
+      clearTimer();
     }
-  }, [isRecording]);
+
+    return clearTimer;
+  }, [recordingStartedOn]);
 
   useEffect(() => {
-    return () => {
-      setTimerHandle(handle => {
-        if (handle !== null) {
-          window.clearInterval(handle);
-        }
-
-        return null;
-      });
-    };
-  });
-
-  useEffect(() => onResize, [onResize, showRecordings]);
+    if (onResize) {
+      onResize();
+    }
+  }, [onResize, showRecordings]);
 
   return (
     <div className={classNames('Record', className)}>

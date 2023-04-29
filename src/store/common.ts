@@ -3,14 +3,15 @@ import { makeNiceState, StateManager, Viewport } from 'ow-libs';
 import { RecordingHeader, RecordingTimeline } from '../shared';
 
 export interface CommonState {
-  seek: number,
-  loaded: boolean,
+  playerSeek: number,
+  playerLoaded: boolean,
+  playerConnected: boolean,
   isPlaying: boolean,
   isRecording: boolean,
+  recordingStartedOn: number,
   recording: RecordingHeader | null,
   recordingTimeline: RecordingTimeline | null,
   recordings: RecordingHeader[],
-  clientConnected: boolean,
   gameRunningId: number | null,
   launcherRunningId: number | null,
   gameInFocus: boolean,
@@ -18,14 +19,15 @@ export interface CommonState {
 };
 
 const initialState: CommonState = {
-  seek: 0,
-  loaded: false,
+  playerSeek: 0,
+  playerLoaded: false,
+  playerConnected: false,
   isPlaying: false,
   isRecording: false,
+  recordingStartedOn: -1,
   recording: null,
   recordingTimeline: null,
   recordings: [],
-  clientConnected: false,
   gameRunningId: null,
   launcherRunningId: null,
   gameInFocus: false,

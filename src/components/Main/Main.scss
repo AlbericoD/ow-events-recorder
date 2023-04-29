@@ -3,20 +3,23 @@
   color: #fff;
   background: #1A1A1A;
   background-size: cover;
-  // border-radius: 8px;
   overflow: hidden;
 
-  /* &::after {
-    content: '';
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border: 1px solid rgba(255, 255, 255, .3333);
+  &.ingame {
     border-radius: 8px;
-    pointer-events: none;
-    contain: strict;
-  } */
+
+    &::after {
+      content: '';
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 1px solid #ffffff55;
+      border-radius: 8px;
+      pointer-events: none;
+      contain: strict;
+    }
+  }
 }
