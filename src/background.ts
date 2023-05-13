@@ -1,12 +1,13 @@
 import { EventEmitter, LauncherStatus, GameStatus, OverwolfWindow, WindowTunnel, log } from 'ow-libs';
 import { debounce } from 'throttle-debounce';
 
-import { kWindowNames, kEventBusName } from './constants/config';
-import { EventBusEvents } from './constants/types';
+import { kWindowNames, kEventBusName, kRecordingReaderWriterName } from './constants/config';
+import { EventBusEvents, OpenFilePickerMultiResult } from './constants/types';
 import { RecorderService } from './services/recorder';
-import { ExtensionMessageEvent, RecordingManager, WSClientMessage, WSServerLoad, WSServerMessage, WSServerMessageTypes, WSServerPause, WSServerPlay, WSServerSetSeek, isWSClientUpdate } from './shared';
+import { ExtensionMessageEvent, WSClientMessage, WSServerLoad, WSServerMessage, WSServerMessageTypes, WSServerPause, WSServerPlay, WSServerSetSeek, isWSClientUpdate, kRecordingExportedExt } from './shared';
 import { makeCommonStore } from './store/common';
 import { makePersStore } from './store/pers';
+import { RecordingReaderWriter } from './services/recording-writer';
 
 class BackgroundController {
   readonly eventBus = new EventEmitter<EventBusEvents>();
@@ -16,7 +17,7 @@ class BackgroundController {
   readonly persState = makePersStore();
   readonly mainWin = new OverwolfWindow(kWindowNames.main);
   readonly rs = new RecorderService();
-  readonly rm = new RecordingManager();
+  readonly rw = new RecordingReaderWriter();
 
   readonly seekDebounced = debounce(200, this.seek);
 
@@ -69,7 +70,7 @@ class BackgroundController {
       this.launcherStatus.start(),
       this.gameStatus.start(),
       this.rs.init(),
-      this.updateRecordingsList(),
+      this.updateRecordings(),
       this.updateViewports()
     ]);
 
@@ -87,7 +88,11 @@ class BackgroundController {
 
       load: uid => this.load(uid),
       playPause: () => this.togglePlay(),
-      seek: seek => this.seekDebounced(seek)
+      seek: seek => this.seekDebounced(seek),
+
+      import: () => this.import(),
+      importFromPaths: paths => this.importFromPaths(paths),
+      export: uid => this.export(uid)
     });
 
     this.rs.on({
@@ -125,22 +130,10 @@ class BackgroundController {
     console.log('start(): success');
   }
 
-  bindAppShutdown() {
-    window.addEventListener('beforeunload', e => {
-      delete e.returnValue;
-
-      console.log('App shutting down');
-
-      if (this.rs.isRecording) {
-        console.log('App is recording, stopping to save');
-        this.rs.stop();
-      }
-    });
-  }
-
   /** Make these objects available to all windows via a WindowTunnel */
   initTunnels() {
     WindowTunnel.set(kEventBusName, this.eventBus);
+    WindowTunnel.set(kRecordingReaderWriterName, this.rw);
   }
 
   bindClientMessages(): Promise<void> {
@@ -168,8 +161,8 @@ class BackgroundController {
       const recording = this.rs.stop();
 
       if (recording) {
-        await this.rm.set(recording);
-        await this.updateRecordingsList();
+        await this.rw.set(recording);
+        await this.updateRecordings();
       }
     } else {
       this.rs.start();
@@ -178,8 +171,6 @@ class BackgroundController {
 
   handleClientMessages(event: ExtensionMessageEvent) {
     console.log('handleClientMessage():', event);
-
-    this.state.playerConnected = Boolean(event.isRunning);
 
     if (
       this.persState.clientUID === event.id &&
@@ -194,6 +185,35 @@ class BackgroundController {
         this.state.isPlaying = message.playing;
       }
     }
+
+    const connected = Boolean(event.isRunning);
+
+    if (this.state.playerConnected !== connected) {
+      this.state.playerConnected = connected;
+
+      if (connected) {
+        this.onClientConnected();
+      } else {
+        this.onClientDisconnected();
+      }
+    }
+  }
+
+  onClientConnected() {
+    console.log('onClientConnected()');
+
+    const { recording } = this.state;
+
+    if (recording) {
+      this.load(recording.uid);
+    }
+  }
+
+  onClientDisconnected() {
+    console.log('onClientDisconnected()');
+    this.state.playerLoaded = false;
+    this.state.playerSeek = 0;
+    this.state.isPlaying = false;
   }
 
   sendMessageToClient<T extends WSServerMessage>(
@@ -229,6 +249,14 @@ class BackgroundController {
     }
   }
 
+  launchClient() {
+    if (this.persState.clientUID === null) {
+      console.log('launchClient(): no app selected');
+    } else {
+      overwolf.extensions.launch(this.persState.clientUID);
+    }
+  }
+
   togglePlay() {
     if (this.rs.isRecording) {
       console.log('togglePlay(): currently recording');
@@ -236,7 +264,8 @@ class BackgroundController {
     }
 
     if (!this.state.playerConnected) {
-      console.log('togglePlay(): currently recording');
+      console.log('togglePlay(): player not connected, launching');
+      this.launchClient();
       return;
     }
 
@@ -263,30 +292,30 @@ class BackgroundController {
     });
   }
 
-  async updateRecordingsList() {
-    this.state.recordings = await this.rm.getHeaders();
+  async updateRecordings() {
+    this.state.recordings = await this.rw.getHeaders();
   }
 
   async rename(uid: string, title: string) {
-    const header = await this.rm.getHeader(uid);
+    const header = await this.rw.getHeader(uid);
 
     console.log('rename():', uid, header, header?.title, title);
 
     if (header) {
       header.title = title;
 
-      await this.rm.setHeader(header);
+      await this.rw.setHeader(header);
 
-      await this.updateRecordingsList();
+      await this.updateRecordings();
     }
   }
 
   async remove(uid: string) {
     console.log('remove():', uid);
 
-    await this.rm.remove(uid);
+    await this.rw.remove(uid);
 
-    await this.updateRecordingsList();
+    await this.updateRecordings();
   }
 
   onLauncherRunningChanged() {
@@ -313,6 +342,79 @@ class BackgroundController {
     }
   }
 
+  openFilePicker(
+    filter: string,
+    initialPath: string,
+    multiSelect: boolean,
+  ): Promise<OpenFilePickerMultiResult> {
+    return new Promise(resolve => {
+      overwolf.utils.openFilePicker(
+        filter,
+        initialPath,
+        resolve,
+        multiSelect
+      );
+    });
+  }
+
+  openFolderPicker(
+    intialPath: string
+  ): Promise<overwolf.utils.OpenFolderPickerResult> {
+    return new Promise(resolve => {
+      overwolf.utils.openFolderPicker(intialPath, resolve);
+    });
+  }
+
+  async import() {
+    const filePickResult = await this.openFilePicker(
+      `.${kRecordingExportedExt}`,
+      this.persState.lastPath ?? overwolf.io.paths.documents,
+      true
+    );
+
+    console.log('import():', filePickResult);
+
+    if (
+      !filePickResult.success ||
+      !filePickResult.files ||
+      filePickResult.files.length === 0
+    ) {
+      return;
+    }
+
+    for (const path of filePickResult.files) {
+      await this.rw.import(path);
+    }
+
+    await this.updateRecordings();
+  }
+
+  async importFromPaths(filePaths: string[]) {
+    console.log('importFromPaths():', filePaths);
+
+    for (const path of filePaths) {
+      await this.rw.import(path);
+    }
+
+    await this.updateRecordings();
+  }
+
+  async export(uid: string) {
+    console.log('export():', uid);
+
+    const folderPickResult = await this.openFolderPicker(
+      this.persState.lastPath ?? overwolf.io.paths.documents
+    );
+
+    if (folderPickResult.success && folderPickResult.path) {
+      this.persState.lastPath = folderPickResult.path;
+
+      await this.rw.export(uid, folderPickResult.path);
+    } else {
+      this.persState.lastPath = null;
+    }
+  }
+
   async updateViewports() {
     const viewport = await OverwolfWindow.getPrimaryViewport();
 
@@ -323,6 +425,24 @@ class BackgroundController {
 
       console.log('updateViewports():', ...log(viewport));
     }
+  }
+
+  bindAppShutdown() {
+    window.addEventListener('beforeunload', e => {
+      delete e.returnValue;
+
+      console.log('App shutting down');
+
+      if (this.rs.isRecording) {
+        console.log('App is recording, stopping to save');
+        this.rs.stop();
+      }
+
+      if (this.state.isPlaying) {
+        console.log('App is playing, stopping');
+        this.togglePlay();
+      }
+    });
   }
 }
 

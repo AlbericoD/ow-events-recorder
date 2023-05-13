@@ -6,7 +6,7 @@ import { CommonState, kCommonStoreName } from '../store/common';
 const store = new StateClient<CommonState>(kCommonStoreName);
 
 export function useCommonState<Key extends keyof CommonState>(key: Key) {
-  const [val, setVal] = useState(store.get(key));
+  const [val, setVal] = useState(() => store.get(key));
 
   useEffect(() => {
     const onUpdate = (val?: CommonState[Key]) => {

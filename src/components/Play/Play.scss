@@ -2,9 +2,46 @@
 
 .Play {
   display: grid;
-  grid-template: "current recordings";
+  grid-template:
+    "timeline timeline"
+    "current recordings";
   grid-template-columns: 1fr 380px;
   width: 800px;
+
+  &.drag-over::before {
+    display: flex;
+    content: 'Drop .erp recording file';
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 5px;
+    right: 5px;
+    bottom: 5px;
+    left: 5px;
+    z-index: 999999;
+    border: 2px dotted #d33f3780;
+    background-color: #00000080;
+    border-radius: 3px;
+    pointer-events: none;
+    line-height: 20px;
+    font-family: Madera, sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #fff;
+    text-align: center;
+    // transition:
+    //   visibility .2s ease-in-out,
+    //   opacity .2s ease-in-out;
+  }
+
+  // &:not(.drag-over)::before {
+  //   visibility: hidden;
+  //   opacity: 0;
+  // }
+
+  .timeline {
+    grid-area: timeline;
+  }
 
   .current {
     position: relative;
@@ -91,6 +128,25 @@
     margin: 16px 30px;
   }
 
+  .recording-info {
+    margin: 16px 30px 0;
+    line-height: 18px;
+    color: #808080;
+    font-size: 14px;
+
+    li {
+      display: flex;
+      padding: 6px 0;
+
+      strong {
+        margin-left: auto;
+        font-weight: 400;
+        font-size: 14px;
+        color: #ccc;
+      }
+    }
+  }
+
   .actions {
     position: absolute;
     left: 30px;
@@ -117,6 +173,11 @@
 
       &:hover {
         background-color: #333333;
+      }
+
+      &:disabled {
+        opacity: .667;
+        pointer-events: none;
       }
 
       &.change-client {

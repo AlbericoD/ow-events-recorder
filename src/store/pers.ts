@@ -2,14 +2,16 @@ import { makeNiceState, StateManager, Viewport } from 'ow-libs';
 import { kMainScreens } from '../constants/config';
 
 export interface PersState {
-  screen: kMainScreens,
-  clientUID: string | null,
+  screen: kMainScreens
+  clientUID: string | null
+  lastPath: string | null
   mainPositionedFor: Viewport | null
 };
 
 export const initialPersState: PersState = {
   screen: kMainScreens.Record,
   clientUID: null,
+  lastPath: null,
   mainPositionedFor: null
 };
 

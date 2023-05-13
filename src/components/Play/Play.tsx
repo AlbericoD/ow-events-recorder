@@ -1,10 +1,11 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { debounce } from 'throttle-debounce';
 
 import { useCommonState } from '../../hooks/use-common-state';
 import { usePersState } from '../../hooks/use-pers-state';
 import { eventBus } from '../../services/event-bus';
 import { classNames, formatTime } from '../../utils';
-import { RecordingHeader } from '../../shared';
+import { RecordingHeader, kRecordingExportedExt } from '../../shared';
 import { kDefaultLocale } from '../../constants/config';
 
 import { Recording } from '../Recording/Recording';
@@ -12,6 +13,7 @@ import { ProgressBar } from '../ProgressBar/ProgressBar';
 import { SetClient } from '../InputUID/SetClient';
 import { DropDown, DropDownOption } from '../DropDown/DropDown';
 import { DatePicker } from '../DatePicker/DatePicker';
+import { Timeline } from '../Timeline/Timeline';
 
 import './Play.scss';
 
@@ -34,6 +36,7 @@ export function Play({ className }: PlayProps) {
   const [gameFilter, setGameFilter] = useState<number | null>(null);
   const [authorFilter, setAuthorFilter] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<Date | null>(null);
+  const [drag, setDrag] = useState(false);
 
   const gameFilterOptions = useMemo<DropDownOption[]>(() => {
     const games: Record<number, string> = {};
@@ -71,11 +74,6 @@ export function Play({ className }: PlayProps) {
       ...options
     ];
   }, [recordings]);
-
-  const controlsEnabled = useMemo(
-    () => Boolean(recording && connected && loaded),
-    [connected, loaded, recording]
-  );
 
   const length = useMemo(() => {
     return recording
@@ -121,7 +119,7 @@ export function Play({ className }: PlayProps) {
 
   const buttonText = useMemo(() => {
     if (!connected) {
-      return 'Client app is not running';
+      return 'Launch client app';
     }
 
     if (!recording) {
@@ -155,16 +153,31 @@ export function Play({ className }: PlayProps) {
     eventBus.emit('seek', v * length);
   }
 
+  function importRecording() {
+    eventBus.emit('import');
+  }
+
+  function exportRecording() {
+    if (recording) {
+      eventBus.emit('export', recording.uid);
+    }
+  }
+
+  // function handleDragLeave(e: React.DragEvent) {
+  //   e.preventDefault();
+  //   console.log(e.nativeEvent.type);
+  // }
+
   function renderControls() {
     return <>
       <button
         className={classNames('play-btn', { playing: isPlaying })}
-        disabled={!controlsEnabled}
+        disabled={!((recording && loaded) || !connected)}
         onClick={playPause}
       >
         {buttonText}
         {
-          controlsEnabled &&
+          (recording && loaded && connected) &&
           <time>
             <strong>{formatTime(seek)}</strong>/{formatTime(length)}
           </time>
@@ -172,7 +185,7 @@ export function Play({ className }: PlayProps) {
       </button>
 
       <ProgressBar
-        disabled={!controlsEnabled}
+        disabled={!(recording && loaded && connected)}
         value={seek / length}
         onChange={setSeek}
       />
@@ -215,6 +228,39 @@ export function Play({ className }: PlayProps) {
     ));
   }
 
+  function renderRecordingInfo() {
+    if (!recording) {
+      return null;
+    }
+
+    const dateStr = new Date(recording.startTime).toLocaleString(
+      kDefaultLocale,
+      {
+        timeStyle: 'medium',
+        dateStyle: 'long'
+      }
+    );
+
+    const gamesStr = Object.values({
+      ...recording.games,
+      ...recording.launchers
+    }).join(', ');
+
+    const lengthStr = formatTime(length);
+
+    return (
+      <ul className="recording-info">
+        <li>
+          Author's OW Username:
+          <strong>{recording.author || 'Unknown'}</strong>
+        </li>
+        <li>Recorded on: <strong>{dateStr}</strong></li>
+        <li>Length: <strong>{lengthStr}</strong></li>
+        <li>Games: <strong>{gamesStr}</strong></li>
+      </ul>
+    );
+  }
+
   function renderRecording(v: RecordingHeader) {
     return (
       <Recording
@@ -226,10 +272,67 @@ export function Play({ className }: PlayProps) {
     );
   }
 
+  useEffect(() => {
+    const handleFileDrop = (e: DragEvent) => {
+      e.preventDefault();
+
+      console.log('handleFileDrop():', e);
+
+      if (!e.dataTransfer || e.dataTransfer.files.length === 0) {
+        setDrag(false);
+        return;
+      }
+
+      const filtered = [...e.dataTransfer.files].filter(file => {
+        return file.name.endsWith('.' + kRecordingExportedExt);
+      });
+
+      if (filtered.length === 0) {
+        setDrag(false);
+        return;
+      }
+
+      setDrag(false);
+
+      const paths = filtered.map((f: any) => f.path);
+
+      console.log(paths);
+
+      eventBus.emit('importFromPaths', paths);
+    };
+
+    document.body.addEventListener('drop', handleFileDrop);
+
+    return () => {
+      document.body.removeEventListener('drop', handleFileDrop);
+    }
+  }, []);
+
+  useEffect(() => {
+    const cancelDragStatus = debounce(500, () => {
+      console.log('cancelDragStatus()');
+      setDrag(false);
+    });
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      setDrag(true);
+      cancelDragStatus();
+    };
+
+    document.body.addEventListener('dragover', handleDragOver);
+
+    return () => document.body.removeEventListener('dragover', handleDragOver);
+  }, []);
+
   return (
-    <div className={classNames('Play', className)}>
+    <div className={classNames('Play', className, { 'drag-over': drag })}>
+      <Timeline className="timeline" />
+
       <div className="current">
         {clientUID ? renderControls() : <SetClient />}
+
+        {renderRecordingInfo()}
 
         <div className="actions">
           {
@@ -239,8 +342,11 @@ export function Play({ className }: PlayProps) {
               onClick={resetClientUID}
             >Change client app</button>
           }
-          <button>Export Recordings</button>
-          <button>Import Recordings</button>
+          <button
+            disabled={!recording}
+            onClick={exportRecording}
+          >Export Recording</button>
+          <button onClick={importRecording}>Import Recordings</button>
         </div>
       </div>
 

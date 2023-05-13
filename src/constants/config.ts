@@ -9,6 +9,7 @@ export const kHotkeyStartStop = 'event-recorder-start-stop';
 export const kHotkeyToggle = 'event-recorder-toggle';
 
 export const kHotkeyServiceName = 'HotkeyService';
+export const kRecordingReaderWriterName = 'RecordingReaderWriter';
 export const kEventBusName = 'EventBus';
 
 export const kDefaultLocale = 'en-GB';

@@ -6,7 +6,7 @@ import { PersState, kPersStoreName } from '../store/pers';
 const store = new StateClient<PersState>(kPersStoreName);
 
 export function usePersState<Key extends keyof PersState>(key: Key) {
-  const [val, setVal] = useState(store.get(key));
+  const [val, setVal] = useState(() => store.get(key));
 
   useEffect(() => {
     const onUpdate = (val?: PersState[Key]) => {

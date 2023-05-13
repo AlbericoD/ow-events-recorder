@@ -1,20 +1,19 @@
 import { makeNiceState, StateManager, Viewport } from 'ow-libs';
 
-import { RecordingHeader, RecordingTimeline } from '../shared';
+import { RecordingHeader } from '../shared';
 
 export interface CommonState {
-  playerSeek: number,
-  playerLoaded: boolean,
-  playerConnected: boolean,
-  isPlaying: boolean,
-  isRecording: boolean,
-  recordingStartedOn: number,
-  recording: RecordingHeader | null,
-  recordingTimeline: RecordingTimeline | null,
-  recordings: RecordingHeader[],
-  gameRunningId: number | null,
-  launcherRunningId: number | null,
-  gameInFocus: boolean,
+  playerSeek: number
+  playerLoaded: boolean
+  playerConnected: boolean
+  isPlaying: boolean
+  isRecording: boolean
+  recordingStartedOn: number
+  recording: RecordingHeader | null
+  recordings: RecordingHeader[]
+  gameRunningId: number | null
+  launcherRunningId: number | null
+  gameInFocus: boolean
   viewport: Viewport | null
 };
 
@@ -26,7 +25,6 @@ const initialState: CommonState = {
   isRecording: false,
   recordingStartedOn: -1,
   recording: null,
-  recordingTimeline: null,
   recordings: [],
   gameRunningId: null,
   launcherRunningId: null,

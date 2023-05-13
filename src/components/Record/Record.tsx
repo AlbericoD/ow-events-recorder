@@ -59,8 +59,6 @@ export function Record({ className, onResize }: RecordProps) {
         return window.setInterval(() => {
           const ms = Date.now() - recordingStartedOn;
 
-          console.log({ms});
-
           setElapsed(formatTime(ms, true));
         }, kTimerInterval);
       });

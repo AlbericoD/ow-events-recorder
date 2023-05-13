@@ -13,6 +13,15 @@ export type EventBusEvents = {
   load: string
   playPause: void
   seek: number
+
+  import: void
+  importFromPaths: string[]
+  export: string
+}
+
+export interface OpenFilePickerMultiResult extends overwolf.Result {
+  files?: string[]
+  urls?: string[]
 }
 
 export interface OverwolfGameFeatureKey {

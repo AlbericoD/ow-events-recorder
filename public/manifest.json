@@ -4,7 +4,7 @@
   "meta": {
     "name": "Overwolf ERP",
     "description": "Overwolf Event Recorder/Player",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "minimum-overwolf-version": "0.165.0",
     "author": "Overwolf",
     "icon": "icons/dock.png",
@@ -22,6 +22,12 @@
     "FileSystem"
   ],
   "data": {
+    "extra-objects": {
+      "erp": {
+        "file": "plugins/erp.dll",
+        "class": "overwolf.plugins.erp.ERPPlugin"
+      }
+    },
     "force_browser": "user",
     "start_window": "background",
     "windows": {

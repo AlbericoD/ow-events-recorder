@@ -282,11 +282,11 @@ export class RecorderService extends EventEmitter<RecorderServiceEvents> {
     eventType: T['type'],
     data: T['data']
   ) {
-    console.log(
+    /* console.log(
       'RecorderService.#recordEvent():',
       RecordingEventTypes[eventType],
       data
-    );
+    ); */
 
     if (!this.#recording) {
       return;

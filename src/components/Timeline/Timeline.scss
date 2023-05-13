@@ -1,0 +1,92 @@
+.Timeline {
+  position: relative;
+  overflow: hidden;
+  margin: 0 1px;
+  width: calc(100% - 2px);
+  height: 81px;
+  background: linear-gradient(180deg, rgba(13, 13, 13, 0) 0%, #0D0D0D 100%);
+  border-bottom: 1px solid #0D0D0D;
+  overflow: hidden;
+
+  .current-position {
+    position: absolute;
+    top: 16px;
+    bottom: 16px;
+    width: 1px;
+    background: #ccc;
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+
+  .line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: 200ms transform linear;
+    will-change: transform;
+  }
+
+  .sector {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .second {
+    position: absolute;
+    bottom: 4px;
+    line-height: 10px;
+    font-weight: 400;
+    font-size: 9px;
+    color: #fff;
+    white-space: nowrap;
+    pointer-events: none;
+
+    &::before {
+      content: '';
+      display: block;
+      position: absolute;
+      bottom: calc(100% + 4px);
+      width: 1px;
+      height: 12px;
+      background: #4D4D4D;
+    }
+  }
+
+  .tick {
+    position: absolute;
+    bottom: 18px;
+    width: 1px;
+    height: 5px;
+    background: #4D4D4D;
+    pointer-events: none;
+  }
+
+  .events-chunk {
+    position: absolute;
+    left: 228px;
+    top: 0;
+    bottom: 0;
+    margin-top: auto;
+    margin-bottom: auto;
+    height: fit-content;
+  }
+
+  .empty {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #808080;
+    font-size: 12px;
+    pointer-events: none;
+  }
+}

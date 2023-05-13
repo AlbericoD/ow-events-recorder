@@ -49,14 +49,19 @@ export const padNumber = (num: number, length: number) => {
 
 export const formatTime = (ms: number, includeMs = false) => {
   const
-    hours = Math.floor((ms / (1000 * 60 * 60)) % 24),
-    minutes = Math.floor((ms / (1000 * 60)) % 60),
-    seconds = Math.floor((ms / 1000) % 60),
-    milliseconds = ms % 1000;
+    msAbs = Math.abs(ms),
+    hours = Math.floor((msAbs / (1000 * 60 * 60)) % 24),
+    minutes = Math.floor((msAbs / (1000 * 60)) % 60),
+    seconds = Math.floor((msAbs / 1000) % 60),
+    milliseconds = msAbs % 1000;
 
   let out = '';
 
-  if (hours > 0) {
+  if (ms < 0) {
+    out += '-';
+  }
+
+  if (hours > 0 || hours < 0) {
     out += padNumber(hours, 2) + ':';
   }
 

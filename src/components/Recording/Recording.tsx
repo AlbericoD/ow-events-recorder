@@ -51,20 +51,13 @@ export function Recording({
   }
 
   function renderGames() {
-    const games = Object.entries({
-      ...recording.launchers,
-      ...recording.games
-    });
+    const games = Object.values({ ...recording.launchers, ...recording.games });
 
     if (games.length === 0) {
       return <div className="no-games">No games ran</div>;
     }
 
-    const gamesList = games.map(([gameId, gameTitle]) => (
-      <li key={gameId}>{gameTitle}</li>
-    ));
-
-    return <ul className="games">{gamesList}</ul>;
+    return <div className="games">{games.join(', ')}</div>;
   }
 
   useEffect(() => {
@@ -106,15 +99,21 @@ export function Recording({
         <button
           className="rename"
           onClick={handleRenameClick}
-        >Rename</button>
+        />
 
         <button
           className="remove"
           onClick={handleRemoveClick}
-        >Delete</button>
+        />
 
         <time className="date">
-          {new Date(recording.startTime).toLocaleString(kDefaultLocale)}
+          {new Date(recording.startTime).toLocaleString(
+            kDefaultLocale,
+            {
+              timeStyle: 'medium',
+              dateStyle: 'long'
+            }
+          )}
         </time>
       </header>
 
