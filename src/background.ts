@@ -77,10 +77,7 @@ class BackgroundController {
     this.eventBus.on({
       mainPositionedFor: vp => this.persState.mainPositionedFor = vp,
       setScreen: screen => this.persState.screen = screen,
-      setClientUID: uid => {
-        this.persState.clientUID = uid;
-        this.bindClientMessages();
-      },
+      setClientUID: uid => this.setClientApp(uid),
 
       record: () => this.toggleRecord(),
       rename: ({ uid, title }) => this.rename(uid, title),
@@ -92,7 +89,9 @@ class BackgroundController {
 
       import: () => this.import(),
       importFromPaths: paths => this.importFromPaths(paths),
-      export: uid => this.export(uid)
+      export: uid => this.export(uid),
+
+      setTimelineScale: scale => this.persState.timelineScale = scale
     });
 
     this.rs.on({
@@ -119,7 +118,7 @@ class BackgroundController {
     this.onGameRunningChanged();
     this.onLauncherRunningChanged();
 
-    await this.bindClientMessages();
+    await this.bindClientMessages(this.persState.clientUID);
 
     overwolf.windows.onMainWindowRestored.addListener(() => {
       this.mainWin.restore();
@@ -136,19 +135,46 @@ class BackgroundController {
     WindowTunnel.set(kRecordingReaderWriterName, this.rw);
   }
 
-  bindClientMessages(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.persState.clientUID === null) {
-        console.log('bindClientMessages(): no app selected');
-        return resolve();
-      }
+  async bindClientMessages(
+    uid: string | null,
+    prevUid: string | null = null
+  ): Promise<void> {
+    const promises: Promise<void>[] = [];
 
-      overwolf.extensions.registerInfo(
-        this.persState.clientUID,
-        v => this.handleClientMessages(v),
-        result => result.success ? resolve() : reject(result.error)
-      );
-    });
+    if (prevUid !== null) {
+      const promise = new Promise<void>((resolve, reject) => {
+        overwolf.extensions.unregisterInfo(
+          prevUid,
+          result => result.success ? resolve() : reject(result.error)
+        );
+      });
+
+      promises.push(promise);
+    }
+
+    if (uid !== null) {
+      const promise = new Promise<void>((resolve, reject) => {
+        overwolf.extensions.registerInfo(
+          uid,
+          v => this.handleClientMessages(v),
+          result => result.success ? resolve() : reject(result.error)
+        );
+      });
+
+      promises.push(promise);
+    } else {
+      console.log('bindClientMessages(): no app selected');
+    }
+
+    await Promise.all(promises);
+  }
+
+  setClientApp(uid: string | null) {
+    const prevUid = this.persState.clientUID;
+
+    this.persState.clientUID = uid;
+
+    this.bindClientMessages(uid, prevUid);
   }
 
   async toggleRecord() {
@@ -169,12 +195,17 @@ class BackgroundController {
     }
   }
 
-  handleClientMessages(event: ExtensionMessageEvent) {
-    console.log('handleClientMessage():', event);
+  handleClientMessages = (event: ExtensionMessageEvent) => {
+    // console.log('handleClientMessage():', event);
+
+    if (this.persState.clientUID !== event.id) {
+      console.log('handleClientMessage(): message from unknown app');
+    }
 
     if (
       this.persState.clientUID === event.id &&
       event.isRunning &&
+      event.info !== null &&
       typeof event.info === 'object'
     ) {
       const message: WSClientMessage = event.info;
@@ -186,7 +217,7 @@ class BackgroundController {
       }
     }
 
-    const connected = Boolean(event.isRunning);
+    const connected = Boolean(event.isRunning && event.info !== null);
 
     if (this.state.playerConnected !== connected) {
       this.state.playerConnected = connected;
@@ -409,7 +440,11 @@ class BackgroundController {
     if (folderPickResult.success && folderPickResult.path) {
       this.persState.lastPath = folderPickResult.path;
 
-      await this.rw.export(uid, folderPickResult.path);
+      const filePath = await this.rw.export(uid, folderPickResult.path);
+
+      if (filePath) {
+        overwolf.utils.openWindowsExplorer(filePath, () => { });
+      }
     } else {
       this.persState.lastPath = null;
     }

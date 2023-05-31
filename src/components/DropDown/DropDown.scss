@@ -22,7 +22,7 @@
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
-    background-color: #262626;
+    background-color: #1A1A1A;
     cursor: pointer;
     transition: all .2s ease-in-out;
 
@@ -31,7 +31,7 @@
     }
 
     &:hover {
-      background-color: #333333;
+      background-color: #262626;
     }
 
     &:after {
@@ -64,7 +64,8 @@
     right: 0;
     z-index: 1;
     border-radius: 6px;
-    background: #454545;
+    background: rgba(38, 38, 38, 0.5);
+    backdrop-filter: blur(8px);
     border-radius: 0 0 6px 6px;
     transform-origin: 0 0;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
@@ -104,20 +105,20 @@
     position: relative;
     padding: 7px 8px;
     line-height: 16px;
-    background: #454545;
     cursor: pointer;
     transition:
       color .2s ease-in-out,
       background-color .2s ease-in-out;
 
-    &:hover {
+    &:hover,
+    &.chosen {
       color: #fff;
-      background: #4f4f4f;
+      background: rgba(88, 89, 91, 0.2);
     }
 
     &.chosen {
       background:
-        #454545 url('../../images/tick.svg') right 5px center no-repeat;
+        rgba(88, 89, 91, 0.2) url('../../images/tick.svg') right 5px center no-repeat;
     }
 
     &.not-found {
@@ -125,7 +126,7 @@
     }
 
     &:not(:last-child) {
-      border-bottom: 1px solid #58595B;
+      border-bottom: 1px solid rgba(88, 89, 91, 0.2);
     }
   }
 }

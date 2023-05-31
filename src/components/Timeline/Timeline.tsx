@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { EventTooltip } from '../EventTooltip/EventTooltip';
 
 import { RecordingEvent, RecordingTimeline } from '../../shared';
 import { useCommonState } from '../../hooks/use-common-state';
-import { classNames, formatTime } from '../../utils';
-
-import { EventTooltip } from '../EventTooltip/EventTooltip';
 import { useTimeline } from '../../hooks/use-timeline';
+import { usePersState } from '../../hooks/use-pers-state';
+import { eventBus } from '../../services/event-bus';
+import { clamp, classNames, formatTime } from '../../utils';
 
 import './Timeline.scss';
 
@@ -24,33 +26,131 @@ type Tick = {
   value: string | null
 }
 
+type TimelineSectorData = {
+  size: number
+  length: number
+  position: number
+  sectorCount: number
+  currentSector: number
+  prevSector: number
+  nextSector: number
+}
+
 const
   kPositionOffset = .2,
-  kSectorSize = 20000,
-  kEventChunkInterval = 500;
+  kSectorSize = 20000, // ms
+  kEventChunkInterval = 500, // ms
+  kMaxMouseMoveFactor = 750, // px
+  kMaxMoveIncrement = 1000, // ms
+  kMoveTickInterval = 100; // ms
+
+const getSectorSeconds = (sectorN: number, sectorSize: number) => {
+  const
+    sectorStart = sectorN * sectorSize,
+    sectorEnd = sectorStart + sectorSize,
+    incr = sectorSize / 40;
+
+  /** Time in ms from start of recording */
+  let time = sectorStart;
+
+  const out: Tick[] = [];
+
+  let lastTime = '';
+
+  while (time < sectorEnd) {
+    const tick: Tick = {
+      pos: (time - sectorStart) / sectorSize,
+      value: null
+    };
+
+    if ((time % (incr * 2)) === 0) {
+      const value = formatTime(time);
+
+      if (value !== lastTime) {
+        lastTime = value;
+        tick.value = value;
+      }
+    }
+
+    out.push(tick);
+
+    time += incr;
+  }
+
+  return out;
+};
+
+const getSectorEvents = (
+  sectorN: number,
+  sectorSize: number,
+  timeline: RecordingTimeline,
+  startTime: number,
+  chunkInterval: number
+) => {
+  const
+    sectorStart = sectorN * sectorSize,
+    sectorEnd = sectorStart + sectorSize;
+
+  const out: EventsChunk[] = [];
+
+  for (var [timestamp, event] of timeline) {
+    /** Time in ms from start of recording */
+    const time = timestamp - startTime;
+
+    if (time >= sectorStart && time <= sectorEnd) {
+      const lastChunk = out[out.length-1];
+
+      if (lastChunk && time < lastChunk.time + chunkInterval) {
+        lastChunk.events.push(event);
+      } else {
+        out.push({
+          time,
+          pos: (time - sectorStart) / sectorSize,
+          events: [event]
+        });
+      }
+    }
+  }
+
+  return out;
+};
 
 export function Timeline({ className }: TimelineProps) {
+
+  const elRef = useRef<HTMLDivElement>(null);
+
   const
     recording = useCommonState('recording'),
-    seek = useCommonState('playerSeek');
+    playerSeek = useCommonState('playerSeek'),
+    isPlaying = useCommonState('isPlaying');
 
-  const timeline = useTimeline(recording?.uid ?? '' );
+  const scale = usePersState('timelineScale');
 
-  const [scale, setScale] = useState(1);
+  const timeline = useTimeline(recording?.uid ?? '');
 
-  const sectorSize = useMemo(() => kSectorSize * scale, [scale]);
+  const
+    [mouseDownPos, setMouseDownPos] = useState<number | null>(null),
+    [changing, setChanging] = useState(false),
+    [userSeek, setUserSeek] = useState(() => playerSeek);
 
-  (window as Record<any, any>).setScale = setScale;
+  const seek = useMemo(
+    () => (mouseDownPos !== null || changing) ? userSeek : playerSeek,
+    [changing, mouseDownPos, playerSeek, userSeek]
+  );
 
   const {
+    size,
+    length,
     position,
     sectorCount,
     currentSector,
     prevSector,
     nextSector
-  } = useMemo(() => {
+  } = useMemo<TimelineSectorData>(() => {
     if (!recording) {
       return {
+        size: kSectorSize,
+        length: 1,
         position: 0,
         sectorCount: 0,
         currentSector: 0,
@@ -60,8 +160,9 @@ export function Timeline({ className }: TimelineProps) {
     }
 
     const
+      size = kSectorSize * scale,
       length = recording.endTime - recording.startTime,
-      lengthInSectors = length / sectorSize,
+      lengthInSectors = length / size,
       sectorCount = Math.ceil(lengthInSectors),
       position = Math.min(seek / length, 1),
       positionAdjusted = (position * (lengthInSectors / sectorCount)),
@@ -71,166 +172,176 @@ export function Timeline({ className }: TimelineProps) {
       nextSector = currentSector + 1;
 
     return {
+      size,
+      length,
       position: positionWithOffset,
       sectorCount,
       currentSector,
       prevSector,
       nextSector
     };
-  }, [recording, sectorSize, seek]);
+  }, [recording, scale, seek]);
 
-  const getSectorSeconds = (sector: number, sectorSize: number) => {
-    const
-      sectorStart = sector * sectorSize,
-      sectorEnd = sectorStart + sectorSize,
-      incr = sectorSize / 40;
-
-    /** Time in ms from start of recording */
-    let time = sectorStart;
-
-    const out: Tick[] = [];
-
-    let lastTime = '';
-
-    while (time < sectorEnd) {
-      const tick: Tick = {
-        pos: (time - sectorStart) / sectorSize,
-        value: null
-      };
-
-      if ((time % (incr * 2)) === 0) {
-        const value = formatTime(time);
-
-        if (value !== lastTime) {
-          lastTime = value;
-          tick.value = value;
-        }
-      }
-
-      out.push(tick);
-
-      time += incr;
+  const onMouseDown = (e: MouseEvent) => {
+    if (recording && !isPlaying && elRef.current === e.target) {
+      setMouseDownPos(e.clientX);
     }
-
-    return out;
   };
 
-  const getSectorEvents = (
-    sector: number,
-    sectorSize: number,
-    timeline: RecordingTimeline,
-    startTime: number
-  ) => {
-    const
-      sectorStart = sector * sectorSize,
-      sectorEnd = sectorStart + sectorSize;
+  const setScale = (scale: number) => eventBus.emit('setTimelineScale', scale);
 
-    const out: EventsChunk[] = [];
+  const renderTime = ({ pos, value }: Tick) => (
+    <div
+      key={pos}
+      className={value ? 'second' : 'tick'}
+      style={{ left: `${pos * 100}%` }}
+    >{value}</div>
+  );
 
-    for (var [timestamp, event] of timeline) {
-      /** Time in ms from start of recording */
-      const time = timestamp - startTime;
-
-      if (time >= sectorStart && time <= sectorEnd) {
-        const lastChunk = out[out.length-1];
-
-        if (lastChunk && time < lastChunk.time + kEventChunkInterval) {
-          lastChunk.events.push(event);
-        } else {
-          out.push({
-            time,
-            pos: (time - sectorStart) / sectorSize,
-            events: [event]
-          });
-        }
-      }
-    }
-
-    return out;
-  };
-
-  function renderTime({ pos, value }: Tick) {
-    return (
-      <div
-        key={pos}
-        className={value ? 'second' : 'tick'}
-        style={{ left: `${pos * 100}%` }}
-      >{value}</div>
-    );
-  }
-
-  const renderChunk = useCallback((
-    { pos, time, events }: EventsChunk,
-    startTime: number
-  ) => {
-    return (
-      <EventTooltip
-        key={time}
-        time={time}
-        startTime={startTime}
-        events={events}
-        style={{ left: `${pos * 100}%` }}
-        className="events-chunk"
-      />
-    );
-  }, []);
-
-  const renderSector = useCallback((sector: number) => {
+  const renderSector = useCallback((sectorN: number) => {
     if (!recording || !timeline) {
       return <></>;
     }
 
     const sectorWidth = 100 / sectorCount;
 
-    const seconds = getSectorSeconds(sector, sectorSize);
+    const seconds = getSectorSeconds(sectorN, size);
 
     const events = getSectorEvents(
-      sector,
-      sectorSize,
+      sectorN,
+      size,
       timeline,
-      recording?.startTime ?? 0
+      recording?.startTime ?? 0,
+      (scale >= 4) ? kEventChunkInterval * 2 : kEventChunkInterval
+    );
+
+    const renderChunk = ({ pos, time, events }: EventsChunk) => (
+      <EventTooltip
+        key={time}
+        time={time}
+        startTime={recording?.startTime ?? 0}
+        events={events}
+        style={{ left: `${pos * 100}%` }}
+        className="events-chunk"
+      />
     );
 
     return (
       <div
-        key={sector}
+        key={sectorN}
         className="sector"
         style={{
           width: `${sectorWidth}%`,
-          left: `${sector * sectorWidth}%`
+          left: `${sectorN * sectorWidth}%`
         }}
       >
         {seconds.map(renderTime)}
-        {events.map(v => renderChunk(v, recording?.startTime ?? 0))}
+        {events.map(renderChunk)}
       </div>
     );
-  }, [recording, renderChunk, sectorCount, sectorSize, timeline])
+  }, [recording, scale, timeline, sectorCount, size]);
 
   const prevSectorRendered = useMemo(
     () => renderSector(prevSector),
-    [prevSector, renderSector]
+    [renderSector, prevSector]
   );
 
   const currentSectorRendered = useMemo(
     () => renderSector(currentSector),
-    [currentSector, renderSector]
+    [renderSector, currentSector]
   );
 
   const nextSectorRendered = useMemo(
     () => renderSector(nextSector),
-    [nextSector, renderSector]
+    [renderSector, nextSector]
   );
+
+  useEffect(() => {
+    setChanging(false);
+    setUserSeek(playerSeek);
+  }, [playerSeek]);
+
+  useEffect(() => {
+    if (isPlaying || mouseDownPos === null) {
+      return;
+    }
+
+    let
+      tickIntervalHandle: number | null = null,
+      moveFactor = 0;
+
+    const onMouseMoved = (e: MouseEvent) => {
+      let value = e.clientX - mouseDownPos;
+
+      value = clamp(value, -kMaxMouseMoveFactor, kMaxMouseMoveFactor);
+
+      moveFactor = value / kMaxMouseMoveFactor;
+    };
+
+    const onMoveTick = (fireEvent = false) => {
+      setUserSeek(value => {
+        value += kMaxMoveIncrement * moveFactor;
+
+        value = Math.round(value);
+
+        value = clamp(value, 0, length);
+
+        if (fireEvent) {
+          setChanging(true);
+          eventBus.emit('seek', value);
+        }
+
+        return value;
+      });
+    };
+
+    const onMouseUp = () => {
+      onMoveTick(true);
+      setMouseDownPos(null);
+    };
+
+    const onBlur = () => setMouseDownPos(null);
+
+    window.addEventListener('blur', onBlur);
+
+    if (mouseDownPos !== null) {
+      onMoveTick();
+      tickIntervalHandle = window.setInterval(onMoveTick, kMoveTickInterval);
+
+      document.documentElement.addEventListener('mousemove', onMouseMoved);
+      document.documentElement.addEventListener('mouseup', onMouseUp);
+      window.addEventListener('blur', onBlur);
+    }
+
+    return () => {
+      if (tickIntervalHandle !== null) {
+        window.clearInterval(tickIntervalHandle);
+      }
+
+      document.documentElement.removeEventListener('mousemove', onMouseMoved);
+      document.documentElement.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [isPlaying, mouseDownPos, length]);
 
   if (!recording) {
     return (
-      <div className={classNames("Timeline", className)}>
+      <div className={classNames('Timeline', className)}>
         <div className="empty">Select a recording</div>
       </div>
     );
   }
 
   return (
-    <div className={classNames("Timeline", className)}>
+    <div
+      ref={elRef}
+      className={classNames(
+        'Timeline',
+        className,
+        { 'mouse-down': mouseDownPos !== null }
+      )}
+      onMouseDown={e => onMouseDown(e.nativeEvent)}
+    >
       <div
         className="line"
         style={{
@@ -247,6 +358,28 @@ export function Timeline({ className }: TimelineProps) {
         className="current-position"
         style={{ left: `${kPositionOffset * 100}%` }}
       />
+
+      <div
+        className="scale-switch"
+        onMouseDown={e => e.stopPropagation()}
+      >
+        <button
+          onClick={() => setScale(.5)}
+          className={classNames({ active: scale === .5 })}
+        >200%</button>
+        <button
+          onClick={() => setScale(1)}
+          className={classNames({ active: scale === 1 })}
+        >100%</button>
+        <button
+          onClick={() => setScale(2)}
+          className={classNames({ active: scale === 2 })}
+        >50%</button>
+        <button
+          onClick={() => setScale(4)}
+          className={classNames({ active: scale === 4 })}
+        >25%</button>
+      </div>
     </div>
   );
 }

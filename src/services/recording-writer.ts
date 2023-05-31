@@ -152,7 +152,7 @@ export class RecordingReaderWriter extends RecordingReader {
       exportDir = RecordingReaderWriter.sanitizeDirPath(exportDir);
 
       const filePath =
-        exportDir + `Recording by ${header.author} ${dateString}` +
+        exportDir + `${header.title} by ${header.author} ${dateString}` +
         '.' + kRecordingExportedExt;
 
       await this.#zipDirectory(

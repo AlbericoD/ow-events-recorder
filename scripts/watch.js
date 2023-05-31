@@ -11,13 +11,16 @@ process.on('unhandledRejection', err => {
 
 // Ensure environment variables are read.
 require('../config/env');
-const chalk = require('react-dev-utils/chalk');
-const fs = require('fs-extra');
-const webpack = require('webpack');
-const checkRequiredFiles = require('react-dev-utils/checkRequiredFiles');
-const paths = require('../config/paths');
-const configFactory = require('../config/webpack.config');
-const printBuildError = require('react-dev-utils/printBuildError');
+
+const
+  chalk = require('react-dev-utils/chalk'),
+  fs = require('fs-extra'),
+  webpack = require('webpack'),
+  checkRequiredFiles = require('react-dev-utils/checkRequiredFiles'),
+  paths = require('../config/paths'),
+  configFactory = require('../config/webpack.config'),
+  printBuildError = require('react-dev-utils/printBuildError'),
+  { checkBrowsers } = require('react-dev-utils/browsersHelper');
 
 const isInteractive = process.stdout.isTTY;
 
@@ -33,8 +36,6 @@ if (
 
 // We require that you explicitly set browsers and do not fall back to
 // browserslist defaults.
-const { checkBrowsers } = require('react-dev-utils/browsersHelper');
-
 checkBrowsers(paths.appPath, isInteractive)
   .then(() => {
     // Generate configuration
@@ -50,23 +51,25 @@ checkBrowsers(paths.appPath, isInteractive)
       filter: file => !paths.appHtml.includes(file),
     });
 
+    const watchOptions = {
+      ignored: [paths.appNodeModules, paths.appBuild]
+    };
+
     let i = 0;
 
     // Start the webpack build
-    webpack(config).watch({ ignored: ['node_modules/', './dist/'] }, err => {
+    webpack(config).watch(watchOptions, (err, stats) => {
       if (err) {
         printBuildError(err);
       } else {
         i++;
-        console.log(chalk.cyan(`Compiled successfully: ${i}`));
+        console.log(chalk.green(`Compiled - iteration ${i++}:`));
+        console.log(stats.toString());
       }
     });
 
-    ['SIGINT', 'SIGTERM'].forEach(function(sig) {
-      process.on(sig, function() {
-        process.exit();
-      });
-    });
+    process.on('SIGINT', () => process.exit());
+    process.on('SIGTERM', () => process.exit());
 
     if (process.env.CI !== 'true') {
       // Gracefully exit when stdin ends

@@ -6,6 +6,8 @@ import { RecordingHeader } from '../../shared';
 import { eventBus } from '../../services/event-bus';
 import { kDefaultLocale } from '../../constants/config';
 
+import { DeleteModal } from '../DeleteModal/DeleteModal';
+
 import './Recording.scss';
 
 export type RecordingProps = {
@@ -24,6 +26,7 @@ export function Recording({
   playing = false
 }: RecordingProps) {
   const [renaming, setRenaming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const titleEl = useRef<HTMLDivElement | null>(null);
 
@@ -43,10 +46,7 @@ export function Recording({
     setRenaming(v => !v);
   }
 
-  function handleRemoveClick(
-    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
-  ) {
-    e.stopPropagation();
+  function removeRecording() {
     eventBus.emit('remove', recording.uid);
   }
 
@@ -103,16 +103,13 @@ export function Recording({
 
         <button
           className="remove"
-          onClick={handleRemoveClick}
+          onClick={() => setDeleting(true)}
         />
 
         <time className="date">
-          {new Date(recording.startTime).toLocaleString(
+          {new Date(recording.startTime).toLocaleTimeString(
             kDefaultLocale,
-            {
-              timeStyle: 'medium',
-              dateStyle: 'long'
-            }
+            { timeStyle: 'medium' }
           )}
         </time>
       </header>
@@ -124,6 +121,15 @@ export function Recording({
           {formatTime(recording.endTime - recording.startTime)}
         </time>
       </div>
+
+      {
+        deleting &&
+        <DeleteModal
+          recording={recording}
+          onConfirm={removeRecording}
+          onCancel={() => setDeleting(false)}
+        />
+      }
     </div>
   );
 }

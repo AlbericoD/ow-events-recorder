@@ -23,7 +23,6 @@ export function Record({ className, onResize }: RecordProps) {
 
   const [elapsed, setElapsed] = useState('');
   const [, setTimerHandle] = useState<number | null>(null);
-
   const [showRecordings, setShowRecordings] = useState(false);
 
   const newRecordings = useMemo(() => {

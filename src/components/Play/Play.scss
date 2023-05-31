@@ -19,25 +19,18 @@
     bottom: 5px;
     left: 5px;
     z-index: 999999;
+    color: #fff;
     border: 2px dotted #d33f3780;
     background-color: #00000080;
     border-radius: 3px;
     pointer-events: none;
     line-height: 20px;
+
     font-family: Madera, sans-serif;
     font-weight: 700;
     font-size: 16px;
-    color: #fff;
     text-align: center;
-    // transition:
-    //   visibility .2s ease-in-out,
-    //   opacity .2s ease-in-out;
   }
-
-  // &:not(.drag-over)::before {
-  //   visibility: hidden;
-  //   opacity: 0;
-  // }
 
   .timeline {
     grid-area: timeline;
@@ -143,6 +136,7 @@
         font-weight: 400;
         font-size: 14px;
         color: #ccc;
+        text-align: right;
       }
     }
   }
@@ -243,10 +237,11 @@
 
   .recordings-list {
     margin-top: 1px;
-    padding: 10px 8px 10px 10px;
-    height: 315px;
+    border-right: 5px solid transparent;
+    padding: 10px 5px 10px 10px;
+    height: 311px;
     background: #0D0D0D;
-    @include mixins.scrollable(scroll);
+    @include mixins.scrollable;
 
     .date-group {
       margin: 2px 8px;

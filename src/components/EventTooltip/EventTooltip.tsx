@@ -1,4 +1,4 @@
-import { useState, useCallback, createElement, useRef, useMemo, useEffect, Fragment } from 'react';
+import { useState, createElement, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 import { RecordingEvent } from '../../shared';
@@ -15,8 +15,8 @@ type EventTooltipProps = {
 }
 
 const
-  kHorizontalOffset = 12,
-  kTopOffset = -20;
+  kMargin = 10,
+  kLineHeight = 30;
 
 export function EventTooltip({
   startTime,
@@ -25,101 +25,99 @@ export function EventTooltip({
   style,
   className
 }: EventTooltipProps) {
-  const [shown, setShown] = useState(false);
-  const [fadingOut, setFadingOut] = useState(false);
+  const [isHover, setIsHover] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const [tipWidth, setTipWidth] = useState(0);
+  const [tipRect, setTipRect] = useState<DOMRect | null>(null);
+  const [areaRect, setAreaRect] = useState<DOMRect | null>(null);
 
   const areaRef = useRef<HTMLElement | null>(null);
-  const tipRefRef = useRef<HTMLElement | null>(null);
+  const tipRef = useRef<HTMLDivElement | null>(null);
 
-  const tipRef = useCallback((node: HTMLElement | null) => {
-    tipRefRef.current = node;
-    setTipWidth(node?.clientWidth ?? 0);
-  }, []);
+  const isShown = useMemo(() => isHover || isOpen, [isHover, isOpen]);
 
-  const left = useMemo(() => {
-    if (!areaRef.current || !shown) {
-      return 0;
+  const { left, top } = useMemo(() => {
+    if (!areaRect || !tipRect) {
+      return { left: -1, top: -1 };
     }
 
-    const rect = areaRef.current.getBoundingClientRect();
+    let
+      left = areaRect.right + kMargin,
+      top = areaRect.top + (areaRect.height/2) - (kLineHeight/2);
 
-    let value = rect.right + kHorizontalOffset;
-
-    if (value + tipWidth > window.innerWidth) {
-      value = rect.left - tipWidth - kHorizontalOffset;
+    if (left + tipRect.width > window.innerWidth) {
+      left = areaRect.left - tipRect.width - kMargin;
     }
 
-    return Math.max(Math.round(value), 0);
-  }, [shown, tipWidth]);
-
-  const top = useMemo(() => {
-    if (!areaRef.current || !shown) {
-      return 0;
+    if (top + tipRect.height + kMargin > window.innerHeight) {
+      top = window.innerHeight - tipRect.height - kMargin;
     }
 
-    const rect = areaRef.current.getBoundingClientRect();
+    left = Math.max(left, 0);
 
-    let value = rect.top + kTopOffset;
+    top = Math.max(top, 0);
 
-    return Math.max(Math.round(value), 0);
-  }, [shown]);
+    return { left, top };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [areaRect, tipRect, isOpen]);
 
-  const onAnimationEnd = (e: React.AnimationEvent<HTMLElement>) => {
-    if (e.animationName === 'EventTooltipContent-fade-out') {
-      setShown(false);
-    }
-  }
-
-  const toggle = (e: MouseEvent) => {
+  const onClick = (e: MouseEvent) => {
     if (
-      tipRefRef.current === e.target ||
-      tipRefRef.current?.contains(e.target as Node)
+      tipRef.current !== null &&
+      tipRef.current !== e.target &&
+      !tipRef.current.contains(e.target as Node)
     ) {
-      return;
-    }
-
-    if (shown) {
-      hide();
-    } else {
-      show();
+      setIsOpen(v => !v);
     }
   }
 
-  const show = () => {
-    setFadingOut(false);
-    setShown(true);
+  const copyText = (text: string) => {
+    overwolf.utils.placeOnClipboard(text);
   }
 
-  const hide = () => {
-    setFadingOut(true);
+  const close = () => {
+    setIsOpen(false);
+    setIsHover(false);
+  }
+
+  const onClickOutside = (e: MouseEvent) => {
+    if (
+      areaRef.current !== null &&
+      areaRef.current !== e.target &&
+      !areaRef.current.contains(e.target as Node) &&
+      tipRef.current !== null &&
+      tipRef.current !== e.target &&
+      !tipRef.current.contains(e.target as Node)
+    ) {
+      setIsOpen(false);
+    }
   }
 
   const renderChunk = () => {
-    if (events.length > 3) {
+    if (events.length > 4) {
       return <>
         <div className="event" />
         <div className="count">{events.length}</div>
       </>;
     }
 
-    return events.map((e, i) => <div className="event" key={`${e.time}-${i}`} />)
+    return events.map((e, i) => (
+      <div className="event" key={`${e.time}-${i}`} />
+    ))
   }
 
   const renderTooltip = () => (
     <div
-      className={classNames('EventTooltipContent', { 'fade-out': fadingOut })}
-      style={{
-        left: `${left}px`,
-        top: `${top}px`
-      }}
       ref={tipRef}
-      onAnimationEnd={onAnimationEnd}
+      className={classNames('EventTooltipContent', { open: isOpen })}
+      style={{
+        left: (left === -1) ? '-100000%' : `${left}px`,
+        top: (top === -1) ? '-100000%' : `${top}px`
+      }}
     >
-      <button className="close" onClick={hide} />
+      {isOpen && <button className="close" onClick={close} />}
       <h3 className="chunk-title">{events.length} events</h3>
-      {events.map(renderEvent)}
+      <div className="events-list">{events.map(renderEvent)}</div>
     </div>
   )
 
@@ -133,7 +131,11 @@ export function EventTooltip({
         <h6 className="title">
           #{index + 1} <strong>{event.type}</strong> at {formattedTime}
         </h6>
-        <pre className="data">{data}</pre>
+        {isOpen && <pre className="data">{data}</pre>}
+        {isOpen && <button
+          className="copy"
+          onClick={() => copyText(data)}
+        />}
       </div>
     );
   }
@@ -145,35 +147,42 @@ export function EventTooltip({
   )
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    setAreaRect(areaRef.current?.getBoundingClientRect() ?? null);
+    setTipRect(tipRef.current?.getBoundingClientRect() ?? null);
 
-      if (
-        shown &&
-        areaRef.current !== null &&
-        areaRef.current !== e.target &&
-        !areaRef.current.contains(e.target as Node) &&
-        tipRefRef.current !== null &&
-        tipRefRef.current !== e.target &&
-        !tipRefRef.current.contains(e.target as Node)
-      ) {
-        hide();
-      }
+    let handle: number | null = null;
+
+    if (isShown) {
+      handle = window.setInterval(() => {
+        setAreaRect(areaRef.current?.getBoundingClientRect() ?? null);
+        setTipRect(tipRef.current?.getBoundingClientRect() ?? null);
+      }, 1000 / 30);
     }
 
-    document.body.addEventListener('click', handleClickOutside);
+    return () => {
+      if (handle !== null) {
+        window.clearInterval(handle);
+      }
+    };
+  }, [isShown]);
 
-    return () => document.body.removeEventListener('click', handleClickOutside);
-  }, [shown]);
+  useEffect(() => {
+    document.body.addEventListener('click', onClickOutside);
+
+    return () => document.body.removeEventListener('click', onClickOutside);
+  }, []);
 
   return createElement(
     'div',
     {
+      ref: areaRef,
       style,
       className: `EventTooltip ${className}`,
-      onClick: toggle,
-      ref: areaRef
+      onClick,
+      onMouseEnter: () => setIsHover(true),
+      onMouseLeave: () => setIsHover(false)
     },
     renderChunk(),
-    shown ? renderPortal() : null
+    isShown ? renderPortal() : null
   );
 }

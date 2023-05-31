@@ -6,13 +6,15 @@ export interface PersState {
   clientUID: string | null
   lastPath: string | null
   mainPositionedFor: Viewport | null
+  timelineScale: number
 };
 
 export const initialPersState: PersState = {
   screen: kMainScreens.Record,
   clientUID: null,
   lastPath: null,
-  mainPositionedFor: null
+  mainPositionedFor: null,
+  timelineScale: 1
 };
 
 export const kPersStoreName = 'pers';

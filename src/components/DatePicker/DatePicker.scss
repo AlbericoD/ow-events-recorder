@@ -1,13 +1,18 @@
 .DatePicker {
   position: relative;
   height: 30px;
-  color: #ccc;
   padding-left: 6px;
   line-height: 30px;
+  color: #ccc;
+  background-color: #1A1A1A;
   font-size: 12px;
   border-radius: 6px;
-  background-color: #262626;
   font-feature-settings: 'tnum' on, 'lnum' on;
+  transition: color .2s ease-in-out;
+
+  &.empty:not(:focus) {
+    color: #999;
+  }
 
   &::-webkit-datetime-edit-fields-wrapper {
     padding: 0;
@@ -37,6 +42,7 @@
     text-align: center;
 
     &:hover {
+      color: #ccc;
       background-color: #333;
     }
 

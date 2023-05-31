@@ -16,4 +16,8 @@
       background: #333333;
     }
   }
+
+  &::-webkit-scrollbar-button {
+    height: 10px;
+  }
 }

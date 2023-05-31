@@ -15,6 +15,7 @@ export function DatePicker({
   onChange,
   className
 }: DatePickerProps) {
+
   function dateToString(date: Date) {
     return date.toISOString().split('T')[0];
   }
@@ -26,7 +27,7 @@ export function DatePicker({
       onChange={e => onChange(e.target.valueAsDate)}
       type="date"
       min="2023-01-01"
-      className={classNames('DatePicker', className)}
+      className={classNames('DatePicker', className, { empty: !value })}
     />
   );
 }

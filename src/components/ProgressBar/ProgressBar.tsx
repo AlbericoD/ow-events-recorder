@@ -9,13 +9,15 @@ export type ProgressBarProps = {
   onChange(value: number): void,
   className?: string
   disabled?: boolean
+  timeFormatter(value: number): string
 }
 
 export function ProgressBar({
   value,
   onChange,
   className,
-  disabled = false
+  disabled = false,
+  timeFormatter
 }: ProgressBarProps) {
   const [userValue, setUserValue] = useState(0);
   const [mouseDown, setMouseDown] = useState(false);
@@ -32,8 +34,6 @@ export function ProgressBar({
   };
 
   const onMouseMoved = useCallback((e: MouseEvent, fireEvent = false) => {
-    e.preventDefault();
-
     if (disabled || !mouseDown || !elRef.current) {
       return;
     }
@@ -84,11 +84,19 @@ export function ProgressBar({
       className={classNames(
         'ProgressBar',
         className,
-        { disabled, 'mouse-down': mouseDown, changing }
+        { disabled, changing, 'mouse-down': mouseDown }
       )}
       onMouseDown={e => onMouseDown(e.nativeEvent)}
       ref={elRef}
     >
+      {
+        (mouseDown || changing) && (
+          <div
+            className="hover-value"
+            style={{ left: `${userValue * 100}%` }}
+          >{timeFormatter(userValue)}</div>
+        )
+      }
       <div className="fill" style={{ width: valuePerc }} />
       {!disabled && <div className="handle" style={{ left: perc }} />}
     </div>

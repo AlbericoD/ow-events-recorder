@@ -163,11 +163,6 @@ export function Play({ className }: PlayProps) {
     }
   }
 
-  // function handleDragLeave(e: React.DragEvent) {
-  //   e.preventDefault();
-  //   console.log(e.nativeEvent.type);
-  // }
-
   function renderControls() {
     return <>
       <button
@@ -188,6 +183,7 @@ export function Play({ className }: PlayProps) {
         disabled={!(recording && loaded && connected)}
         value={seek / length}
         onChange={setSeek}
+        timeFormatter={v => formatTime(v * length, true)}
       />
     </>;
   }
@@ -229,8 +225,8 @@ export function Play({ className }: PlayProps) {
   }
 
   function renderRecordingInfo() {
-    if (!recording) {
-      return null;
+    if (!recording || !clientUID) {
+      return <></>;
     }
 
     const dateStr = new Date(recording.startTime).toLocaleString(
@@ -256,7 +252,10 @@ export function Play({ className }: PlayProps) {
         </li>
         <li>Recorded on: <strong>{dateStr}</strong></li>
         <li>Length: <strong>{lengthStr}</strong></li>
-        <li>Games: <strong>{gamesStr}</strong></li>
+        <li>
+          Games:
+          <strong>{gamesStr.length ? gamesStr : 'No games ran'}</strong>
+        </li>
       </ul>
     );
   }

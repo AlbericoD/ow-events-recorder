@@ -17,6 +17,8 @@ export type EventBusEvents = {
   import: void
   importFromPaths: string[]
   export: string
+
+  setTimelineScale: number
 }
 
 export interface OpenFilePickerMultiResult extends overwolf.Result {

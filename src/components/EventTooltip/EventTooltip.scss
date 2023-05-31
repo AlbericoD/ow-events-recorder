@@ -49,64 +49,81 @@
 .EventTooltipContent {
 	position: fixed;
 	z-index: 999999999;
-	width: 280px;
-	max-height: 450px;
-	padding: 10px 5px 10px 10px;
-	overflow-x: hidden;
-	overflow-y: scroll;
-	background: #262626;
-	border: 1px solid rgba(255, 255, 255, 0.33);
-	border-radius: 3px;
+	max-width: 280px;
+	padding-left: 8px;
+	line-height: 16px;
+	background: rgba(38, 38, 38, 0.65);
+	border-radius: 6px;
+	backdrop-filter: blur(8px);
 	box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
-	animation: EventTooltipContent-fade-in .2s ease-in-out;
-	user-select: text;
+	animation: EventTooltipContent-fade-in .1666666s ease-in-out;
+	pointer-events: none;
 
-	&::-webkit-scrollbar {
-		width: 5px;
-		height: 5px;
-		background: transparent;
-	}
-
-	&::-webkit-scrollbar-thumb {
-		background: #4D4D4D;
-		// border-radius: 1px 0 0 1px;
-
-		&:hover {
-			background: #555;
-		}
-	}
-
-	&.fade-out {
-		animation: EventTooltipContent-fade-out .1s ease-in-out;
+	&.open {
+		user-select: text;
+		pointer-events: auto;
 	}
 
 	.close {
 		position: absolute;
 		top: 0;
-		right: -3px;
+		right: 0;
 		width: 30px;
 		height: 30px;
 		background: url('../../images/close.svg') center center no-repeat;
 	}
 
-	.event+.event {
-		margin-top: 10px;
-	}
-
 	.chunk-title {
-		line-height: 20px;
+		line-height: 30px;
 		color: #E5E5E5;
 		font-family: Madera, sans-serif;
 		font-weight: 700;
 		font-size: 11px;
 	}
 
+	.events-list {
+		margin-right: 3px;
+		padding-right: 3px;
+		padding-bottom: 8px;
+		max-height: 380px;
+		overflow-x: hidden;
+		overflow-y: auto;
+
+		&::-webkit-scrollbar {
+			width: 6px;
+			height: 6px;
+			background: transparent;
+		}
+
+		&::-webkit-scrollbar-thumb {
+			background: #4D4D4D;
+			border-radius: 3px;
+
+			&:hover {
+				background: #666;
+			}
+		}
+
+		&::-webkit-scrollbar-button {
+			height: 8px;
+		}
+	}
+
+	.event {
+		position: relative;
+	}
+
+	&.open .event+.event {
+		margin-top: 8px;
+	}
+
 	.title {
-		line-height: 20px;
+		line-height: 16px;
 		color: #999;
 		font-family: Madera, sans-serif;
 		font-weight: 500;
 		font-size: 11px;
+		font-feature-settings: 'tnum' on, 'lnum' on;
 
 		strong {
 			color: #E5E5E5;
@@ -114,14 +131,64 @@
 		}
 	}
 
+	.copy {
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		width: 24px;
+		height: 24px;
+		color: #000;
+		background: url('../../images/copy.svg') center center no-repeat;
+		background-size: 12px;
+		visibility: hidden;
+		opacity: 0;
+		transition:
+			visibility .2s ease-in-out,
+			opacity .2s ease-in-out,
+			transform .05s ease-in-out;
+	}
+
+	.event:hover .copy {
+		visibility: visible;
+		opacity: .7;
+
+		&:hover {
+			opacity: 1;
+		}
+
+		&:active {
+			transform: translateY(1px);
+		}
+	}
+
 	.data {
-		padding: 10px;
-		line-height: 16px;
+		margin-top: 2px;
+		max-height: 250px;
+		padding: 5px;
 		color: #999;
-		background: #1A1A1A;
+		background: rgba(0, 0, 0, 0.5);
 		border-radius: 3px;
 		font-family: Consolas, monospace;
 		font-size: 11px;
 		overflow: hidden;
+		// white-space: pre-wrap;
+		// word-wrap: break-word;
+		overflow-x: hidden;
+		overflow-y: auto;
+
+		&::-webkit-scrollbar {
+			width: 6px;
+			height: 6px;
+			background: transparent;
+		}
+
+		&::-webkit-scrollbar-thumb {
+			background: #4D4D4D;
+			border-radius: 3px;
+
+			&:hover {
+				background: #666;
+			}
+		}
 	}
 }

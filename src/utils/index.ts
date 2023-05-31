@@ -53,7 +53,7 @@ export const formatTime = (ms: number, includeMs = false) => {
     hours = Math.floor((msAbs / (1000 * 60 * 60)) % 24),
     minutes = Math.floor((msAbs / (1000 * 60)) % 60),
     seconds = Math.floor((msAbs / 1000) % 60),
-    milliseconds = msAbs % 1000;
+    milliseconds = Math.round(msAbs % 1000);
 
   let out = '';
 
@@ -74,4 +74,8 @@ export const formatTime = (ms: number, includeMs = false) => {
   }
 
   return out;
+}
+
+export const clamp = (number: number, min: number, max: number) => {
+  return Math.min(Math.max(number, min), max);
 }
