@@ -1,0 +1,179 @@
+.Log {
+  position: relative;
+  margin-top: 1px;
+  height: 300px;
+  background: #0D0D0D;
+
+  .scroll-to-recent {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    height: 24px;
+    padding: 0 12px;
+    line-height: 24px;
+    color: #FFFFFF;
+    background-color: #262626;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-align: center;
+    text-transform: uppercase;
+    border-radius: 12px;
+    transition: background-color .2s ease-in-out;
+
+    &:hover {
+      background-color: #333333;
+    }
+
+    &:disabled {
+      opacity: .667;
+      pointer-events: none;
+    }
+  }
+
+  .events-list {
+    margin-right: 3px;
+    padding-right: 3px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #4D4D4D;
+      border-radius: 3px;
+
+      &:hover {
+        background: #666;
+      }
+    }
+
+    &::-webkit-scrollbar-button {
+      height: 8px;
+    }
+  }
+
+  .empty {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #808080;
+    font-size: 12px;
+    pointer-events: none;
+  }
+
+  @keyframes LogRecentBlink {
+    50% {
+      color: #ccc;
+      background-color: rgba(211, 64, 55, 0.15);
+    }
+  }
+
+  .event {
+    position: relative;
+    padding-left: 30px;
+    padding-right: 8px;
+    line-height: 24px;
+    color: #999;
+    font-size: 13px;
+    background: 6px 4px no-repeat;
+    background-size: 16px;
+    font-feature-settings: 'tnum' on, 'lnum' on;
+    cursor: pointer;
+    transition:
+      color .1s ease-in-out,
+      background-color .1s ease-in-out;
+
+    &:hover {
+      background-image: url('../../images/down.svg');
+    }
+
+    &.expanded {
+      padding-bottom: 8px;
+
+      &:hover {
+        background-image: url('../../images/up.svg');
+        background-position: left 6px bottom 8px;
+      }
+    }
+
+    &.recent {
+      animation: LogRecentBlink 1s ease-in-out;
+    }
+
+    &:hover,
+    &.expanded {
+      color: #ccc;
+      background-color: #1A1A1A;
+    }
+  }
+
+  .data {
+    padding: 6px !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    border-radius: 3px;
+    line-height: 16px;
+    font-family: Consolas, monospace;
+    font-size: 11px;
+    cursor: initial;
+    user-select: text;
+    transition: none;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #4D4D4D;
+      border-radius: 3px;
+
+      &:hover {
+        background: #666;
+      }
+    }
+  }
+
+  .copy {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    width: 30px;
+    height: 30px;
+    color: #000;
+    background: url('../../images/copy.svg') center center no-repeat;
+    background-size: 10px;
+    visibility: hidden;
+    opacity: 0;
+    transition:
+      visibility .2s ease-in-out,
+      opacity .2s ease-in-out,
+      transform .05s ease-in-out;
+  }
+
+  .event:hover .copy {
+    visibility: visible;
+    opacity: .7;
+
+    &:hover {
+      opacity: 1;
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+}

@@ -15,8 +15,6 @@ import './Main.scss';
 const win = new OverwolfWindow('main');
 
 export function Main() {
-  // const gameInFocus = useCommonState('gameInFocus');
-  // const gameRunningId = useCommonState('gameRunningId');
   const viewport = useCommonState('viewport');
 
   const screen = usePersState('screen');
@@ -50,7 +48,7 @@ export function Main() {
   function renderContent() {
     switch (screen) {
       case kMainScreens.Play:
-        return <Play />;
+        return <Play onResize={adjustWindow} />;
       case kMainScreens.Record:
         return <Record onResize={adjustWindow} />;
     }

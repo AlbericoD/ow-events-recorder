@@ -1,4 +1,5 @@
 import { makeNiceState, StateManager, Viewport } from 'ow-libs';
+
 import { kMainScreens } from '../constants/config';
 
 export interface PersState {
@@ -7,6 +8,7 @@ export interface PersState {
   lastPath: string | null
   mainPositionedFor: Viewport | null
   timelineScale: number
+  playerSpeed: number
 };
 
 export const initialPersState: PersState = {
@@ -14,7 +16,8 @@ export const initialPersState: PersState = {
   clientUID: null,
   lastPath: null,
   mainPositionedFor: null,
-  timelineScale: 1
+  timelineScale: 1,
+  playerSpeed: 1
 };
 
 export const kPersStoreName = 'pers';

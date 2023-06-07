@@ -4,7 +4,7 @@ import { debounce } from 'throttle-debounce';
 import { kWindowNames, kEventBusName, kRecordingReaderWriterName } from './constants/config';
 import { EventBusEvents, OpenFilePickerMultiResult } from './constants/types';
 import { RecorderService } from './services/recorder';
-import { ExtensionMessageEvent, WSClientMessage, WSServerLoad, WSServerMessage, WSServerMessageTypes, WSServerPause, WSServerPlay, WSServerSetSeek, isWSClientUpdate, kRecordingExportedExt } from './shared';
+import { ExtensionMessageEvent, WSClientMessage, WSServerLoad, WSServerMessage, WSServerMessageTypes, WSServerPause, WSServerPlay, WSServerSetSeek, WSServerSetSpeed, isWSClientUpdate, kRecordingExportedExt } from './shared';
 import { makeCommonStore } from './store/common';
 import { makePersStore } from './store/pers';
 import { RecordingReaderWriter } from './services/recording-writer';
@@ -86,6 +86,7 @@ class BackgroundController {
       load: uid => this.load(uid),
       playPause: () => this.togglePlay(),
       seek: seek => this.seekDebounced(seek),
+      speed: speed => this.setSpeed(speed),
 
       import: () => this.import(),
       importFromPaths: paths => this.importFromPaths(paths),
@@ -311,7 +312,8 @@ class BackgroundController {
       });
     } else {
       this.sendMessageToClient<WSServerPlay>({
-        type: WSServerMessageTypes.Play
+        type: WSServerMessageTypes.Play,
+        speed: this.persState.playerSpeed
       });
     }
   }
@@ -320,6 +322,15 @@ class BackgroundController {
     this.sendMessageToClient<WSServerSetSeek>({
       type: WSServerMessageTypes.SetSeek,
       seek
+    });
+  }
+
+  setSpeed(speed: number) {
+    this.persState.playerSpeed = speed;
+
+    this.sendMessageToClient<WSServerSetSpeed>({
+      type: WSServerMessageTypes.SetSpeed,
+      speed
     });
   }
 

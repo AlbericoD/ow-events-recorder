@@ -4,7 +4,7 @@
   "meta": {
     "name": "Overwolf ERP",
     "description": "Overwolf Event Recorder/Player",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "minimum-overwolf-version": "0.165.0",
     "author": "Overwolf",
     "icon": "icons/dock.png",
@@ -35,7 +35,8 @@
       "background": {
         "file": "background.html",
         "is_background_page": true,
-        "background_optimization": false
+        "background_optimization": false,
+        "allow_local_file_access": true
       },
       "main": {
         "file": "main.html",

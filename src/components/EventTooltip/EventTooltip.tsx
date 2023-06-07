@@ -1,10 +1,15 @@
-import { useState, createElement, useRef, useMemo, useEffect } from 'react';
+import { useState, createElement, useRef, useMemo, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
+import json from 'react-syntax-highlighter/dist/esm/languages/hljs/json';
+import hlStyle from 'react-syntax-highlighter/dist/esm/styles/hljs/monokai-sublime';
 
 import { RecordingEvent } from '../../shared';
 import { classNames, formatTime } from '../../utils';
 
 import './EventTooltip.scss';
+
+SyntaxHighlighter.registerLanguage('json', json);
 
 type EventTooltipProps = {
   startTime: number
@@ -58,8 +63,7 @@ export function EventTooltip({
     top = Math.max(top, 0);
 
     return { left, top };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [areaRect, tipRect, isOpen]);
+  }, [areaRect, tipRect]);
 
   const onClick = (e: MouseEvent) => {
     if (
@@ -123,7 +127,7 @@ export function EventTooltip({
 
   const renderEvent = (event: RecordingEvent, index: number) => {
     const
-      data = JSON.stringify(event.data, null, '  '),
+      eventDataText = isOpen ? JSON.stringify(event.data, null, '  ') : '',
       formattedTime = formatTime(event.time - startTime, true);
 
     return (
@@ -131,11 +135,21 @@ export function EventTooltip({
         <h6 className="title">
           #{index + 1} <strong>{event.type}</strong> at {formattedTime}
         </h6>
-        {isOpen && <pre className="data">{data}</pre>}
-        {isOpen && <button
-          className="copy"
-          onClick={() => copyText(data)}
-        />}
+
+        {
+          isOpen && <>
+            <SyntaxHighlighter
+              className="data"
+              language="json"
+              style={hlStyle}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            >{eventDataText}</SyntaxHighlighter>
+            <button
+              className="copy"
+              onClick={() => copyText(eventDataText)}
+            />
+          </>
+        }
       </div>
     );
   }
@@ -144,19 +158,26 @@ export function EventTooltip({
     renderTooltip(),
     document.body,
     `EventTooltipContent-${time}`
-  )
+  );
 
   useEffect(() => {
-    setAreaRect(areaRef.current?.getBoundingClientRect() ?? null);
-    setTipRect(tipRef.current?.getBoundingClientRect() ?? null);
+    document.body.addEventListener('click', onClickOutside);
+
+    return () => document.body.removeEventListener('click', onClickOutside);
+  }, []);
+
+  useLayoutEffect(() => {
+    const updateRects = () => {
+      setAreaRect(areaRef.current?.getBoundingClientRect() ?? null);
+      setTipRect(tipRef.current?.getBoundingClientRect() ?? null);
+    };
+
+    updateRects();
 
     let handle: number | null = null;
 
     if (isShown) {
-      handle = window.setInterval(() => {
-        setAreaRect(areaRef.current?.getBoundingClientRect() ?? null);
-        setTipRect(tipRef.current?.getBoundingClientRect() ?? null);
-      }, 1000 / 30);
+      handle = window.setInterval(updateRects, 1000 / 20);
     }
 
     return () => {
@@ -165,12 +186,6 @@ export function EventTooltip({
       }
     };
   }, [isShown]);
-
-  useEffect(() => {
-    document.body.addEventListener('click', onClickOutside);
-
-    return () => document.body.removeEventListener('click', onClickOutside);
-  }, []);
 
   return createElement(
     'div',

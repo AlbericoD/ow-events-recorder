@@ -13,6 +13,7 @@ export type EventBusEvents = {
   load: string
   playPause: void
   seek: number
+  speed: number
 
   import: void
   importFromPaths: string[]

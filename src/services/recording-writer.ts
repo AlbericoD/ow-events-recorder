@@ -1,7 +1,7 @@
 import { OverwolfPlugin } from 'ow-libs';
 import { v4 as uuid } from 'uuid';
 
-import { Recording, RecordingHeader, RecordingReader, kRecordingExportedExt, kRecordingHeaderFile, kRecordingTimelineFile, kRecordingsDir, readFile, writeFile } from '../shared';
+import { Recording, RecordingHeader, RecordingReader, kOverwolfFSPrefix, kRecordingExportedExt, kRecordingHeaderFile, kRecordingTimelineFile, kRecordingsDir, writeFile } from '../shared';
 
 interface ERPPlugin {
   unzipFile(
@@ -76,7 +76,7 @@ export class RecordingReaderWriter extends RecordingReader {
     });
   }
 
-  async #deleteFile(path: string) {
+  /* async #deleteFile(path: string) {
     const erpPlugin = await this.#plugin.getPlugin();
 
     console.log('#deleteFile():', path);
@@ -87,17 +87,16 @@ export class RecordingReaderWriter extends RecordingReader {
         result => result.success ? resolve() : reject(new Error(result.error))
       );
     });
-  }
+  } */
 
-  async #getHeaderByPath(headerPath: string) {
-    const results = await readFile(headerPath);
+  async #getHeaderByPath(headerPath: string): Promise<RecordingHeader | null> {
+    const response = await fetch(kOverwolfFSPrefix + headerPath);
 
-    if (results.success && results.content) {
-      try {
-        return JSON.parse(results.content) as RecordingHeader;
-      } catch (e) {
+    if (response.ok) {
+      return response.json().catch(e => {
         console.error(e);
-      }
+        return null;
+      });
     }
 
     return null;

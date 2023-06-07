@@ -124,7 +124,9 @@ export function Timeline({ className }: TimelineProps) {
     playerSeek = useCommonState('playerSeek'),
     isPlaying = useCommonState('isPlaying');
 
-  const scale = usePersState('timelineScale');
+  const
+    // speed = usePersState('playerSpeed'),
+    scale = usePersState('timelineScale');
 
   const timeline = useTimeline(recording?.uid ?? '');
 
@@ -324,10 +326,12 @@ export function Timeline({ className }: TimelineProps) {
     };
   }, [isPlaying, mouseDownPos, length]);
 
-  if (!recording) {
+  if (!recording || !timeline) {
     return (
       <div className={classNames('Timeline', className)}>
-        <div className="empty">Select a recording</div>
+        <div className="empty">
+          {recording ? 'Loading…' : 'Select a recording'}
+        </div>
       </div>
     );
   }
@@ -346,7 +350,8 @@ export function Timeline({ className }: TimelineProps) {
         className="line"
         style={{
           width: `${sectorCount * 100}%`,
-          transform: `translateX(${position * -100}%)`
+          transform: `translateX(${position * -100}%)`,
+          // transition: `${100 * speed}ms transform linear`
         }}
       >
         {prevSectorRendered}

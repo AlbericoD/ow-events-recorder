@@ -4,7 +4,8 @@
   display: grid;
   grid-template:
     "timeline timeline"
-    "current recordings";
+    "current recordings"
+    "log log";
   grid-template-columns: 1fr 380px;
   width: 800px;
 
@@ -43,6 +44,10 @@
 
   .recordings {
     grid-area: recordings;
+  }
+
+  .log {
+    grid-area: log;
   }
 
   .SetClient {
@@ -139,20 +144,45 @@
         text-align: right;
       }
     }
+
+    .play-speed {
+      display: flex;
+      margin: -3px 0 0 auto;
+      padding: 3px;
+      background: #262626;
+      border-radius: 11px;
+
+      button {
+        display: block;
+        padding: 0 6px;
+        line-height: 18px;
+        color: #E5E5E5;
+        font-weight: 400;
+        font-size: 10px;
+        text-align: center;
+        border-radius: 9px;
+        transition: all .2s ease-in-out;
+        cursor: pointer;
+
+        &.active {
+          color: #fff;
+          background: #4D4D4D;
+        }
+      }
+    }
   }
 
   .actions {
     position: absolute;
     left: 30px;
     right: 30px;
-    bottom: 30px;
+    bottom: 15px;
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
 
     button {
-      margin-top: 10px;
-      width: calc(50% - 5px);
+      width: calc((100% / 3) - 5px);
       height: 30px;
       line-height: 30px;
       color: #FFFFFF;
@@ -162,7 +192,7 @@
       letter-spacing: 0.05em;
       text-align: center;
       text-transform: uppercase;
-      border-radius: 6px;
+      border-radius: 15px;
       transition: background-color .2s ease-in-out;
 
       &:hover {
@@ -172,10 +202,6 @@
       &:disabled {
         opacity: .667;
         pointer-events: none;
-      }
-
-      &.change-client {
-        width: 100%;
       }
     }
   }
@@ -239,7 +265,7 @@
     margin-top: 1px;
     border-right: 5px solid transparent;
     padding: 10px 5px 10px 10px;
-    height: 311px;
+    height: 286px;
     background: #0D0D0D;
     @include mixins.scrollable;
 

@@ -30,20 +30,29 @@ export function Recording({
 
   const titleEl = useRef<HTMLDivElement | null>(null);
 
-  const rename = debounce(1000, (title: string) => {
+  const onTitleInput = debounce(1000, (e: React.FormEvent) => {
+    const title = e.currentTarget.textContent?.replace(/\n/g,' ') ?? 'Untitled';
+
     eventBus.emit('rename', { uid: recording.uid, title });
   });
 
-  function handleTitleClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+  function onTitleClick(e: React.MouseEvent) {
     e.stopPropagation();
     setRenaming(true);
   }
 
-  function handleRenameClick(
-    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
-  ) {
+  function onRenameClick(e: React.MouseEvent) {
     e.stopPropagation();
     setRenaming(v => !v);
+  }
+
+  function onTitleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setRenaming(false);
+    }
   }
 
   function removeRecording() {
@@ -51,7 +60,10 @@ export function Recording({
   }
 
   function renderGames() {
-    const games = Object.values({ ...recording.launchers, ...recording.games });
+    const games = Object.values({
+      ...recording.launchers,
+      ...recording.games
+    });
 
     if (games.length === 0) {
       return <div className="no-games">No games ran</div>;
@@ -83,28 +95,33 @@ export function Recording({
           clickable: Boolean(onClick)
         }
       )}
-      onClick={onClick}
+      onClick={(!renaming) ? onClick : undefined}
     >
       <header className="header">
         <div
           className="title"
-          contentEditable={renaming}
           ref={titleEl}
-          onInput={e => rename(e.currentTarget.textContent ?? '')}
-          onClick={handleTitleClick}
+          contentEditable={renaming}
+          onKeyDown={onTitleKeyDown}
+          onInput={onTitleInput}
+          onClick={onTitleClick}
           onBlur={() => setRenaming(false)}
           spellCheck={false}
-        ></div>
-
-        <button
-          className="rename"
-          onClick={handleRenameClick}
         />
 
-        <button
-          className="remove"
-          onClick={() => setDeleting(true)}
-        />
+        {
+          !renaming && <>
+            <button
+              className="rename"
+              onClick={onRenameClick}
+            />
+
+            <button
+              className="remove"
+              onClick={() => setDeleting(true)}
+            />
+          </>
+        }
 
         <time className="date">
           {new Date(recording.startTime).toLocaleTimeString(
@@ -123,7 +140,7 @@ export function Recording({
       </div>
 
       {
-        deleting &&
+        deleting && !renaming &&
         <DeleteModal
           recording={recording}
           onConfirm={removeRecording}

@@ -14,11 +14,13 @@ import { SetClient } from '../InputUID/SetClient';
 import { DropDown, DropDownOption } from '../DropDown/DropDown';
 import { DatePicker } from '../DatePicker/DatePicker';
 import { Timeline } from '../Timeline/Timeline';
+import { Log } from '../Log/Log';
 
 import './Play.scss';
 
 export type PlayProps = {
   className?: string
+  onResize?(): void
 }
 
 export function Play({ className }: PlayProps) {
@@ -30,7 +32,9 @@ export function Play({ className }: PlayProps) {
     seek = useCommonState('playerSeek'),
     loaded = useCommonState('playerLoaded');
 
-  const clientUID = usePersState('clientUID');
+  const
+    clientUID = usePersState('clientUID'),
+    speed = usePersState('playerSpeed');
 
   const [search, setSearch] = useState('');
   const [gameFilter, setGameFilter] = useState<number | null>(null);
@@ -153,6 +157,10 @@ export function Play({ className }: PlayProps) {
     eventBus.emit('seek', v * length);
   }
 
+  function setSpeed(speed: number) {
+    eventBus.emit('speed', speed);
+  }
+
   function importRecording() {
     eventBus.emit('import');
   }
@@ -174,7 +182,7 @@ export function Play({ className }: PlayProps) {
         {
           (recording && loaded && connected) &&
           <time>
-            <strong>{formatTime(seek)}</strong>/{formatTime(length)}
+            <strong>{formatTime(seek, true)}</strong>/{formatTime(length, true)}
           </time>
         }
       </button>
@@ -247,6 +255,35 @@ export function Play({ className }: PlayProps) {
     return (
       <ul className="recording-info">
         <li>
+          Play speed:
+          <div className="play-speed">
+            <button
+              onClick={() => setSpeed(.5)}
+              className={classNames({ active: speed === .5 })}
+            >0.5x</button>
+            <button
+              onClick={() => setSpeed(1)}
+              className={classNames({ active: speed === 1 })}
+            >1x</button>
+            <button
+              onClick={() => setSpeed(1.5)}
+              className={classNames({ active: speed === 1.5 })}
+            >1.5x</button>
+            <button
+              onClick={() => setSpeed(2)}
+              className={classNames({ active: speed === 2 })}
+            >2x</button>
+            <button
+              onClick={() => setSpeed(4)}
+              className={classNames({ active: speed === 4 })}
+            >4x</button>
+            <button
+              onClick={() => setSpeed(8)}
+              className={classNames({ active: speed === 8 })}
+            >8x</button>
+          </div>
+        </li>
+        <li>
           Author's OW Username:
           <strong>{recording.author || 'Unknown'}</strong>
         </li>
@@ -254,7 +291,7 @@ export function Play({ className }: PlayProps) {
         <li>Length: <strong>{lengthStr}</strong></li>
         <li>
           Games:
-          <strong>{gamesStr.length ? gamesStr : 'No games ran'}</strong>
+          <strong>{gamesStr ? gamesStr : 'No games ran'}</strong>
         </li>
       </ul>
     );
@@ -339,13 +376,13 @@ export function Play({ className }: PlayProps) {
             <button
               className="change-client"
               onClick={resetClientUID}
-            >Change client app</button>
+            >Set Client</button>
           }
           <button
             disabled={!recording}
             onClick={exportRecording}
-          >Export Recording</button>
-          <button onClick={importRecording}>Import Recordings</button>
+          >Export</button>
+          <button onClick={importRecording}>Import</button>
         </div>
       </div>
 
@@ -388,6 +425,8 @@ export function Play({ className }: PlayProps) {
 
         <div className="recordings-list">{renderRecordings()}</div>
       </div>
+
+      <Log className="log" />
     </div>
   );
 }
