@@ -55,7 +55,8 @@ const appHtml = [
 
 const appEntries = {
   background: resolveModule(resolveApp, 'src/background'),
-  main: resolveModule(resolveApp, 'src/main')
+  main: resolveModule(resolveApp, 'src/main'),
+  player: resolveModule(resolveApp, 'src/player')
 };
 
 const appEntriesToHtml = {
@@ -75,6 +76,7 @@ module.exports = {
   appIndexJs: resolveModule(resolveApp, 'src/index'),
   appPackageJson: resolveApp('package.json'),
   appSrc: resolveApp('src'),
+  appSharedSrc: resolveApp('shared'),
   appTsConfig: resolveApp('tsconfig.json'),
   appJsConfig: resolveApp('jsconfig.json'),
   yarnLockFile: resolveApp('yarn.lock'),

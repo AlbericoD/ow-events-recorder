@@ -9,6 +9,7 @@ import { eventBus } from '../../services/event-bus';
 import { AppHeader } from '../AppHeader/AppHeader';
 import { Play } from '../Play/Play';
 import { Record } from '../Record/Record';
+import { Patcher } from '../Patcher/Patcher';
 
 import './Main.scss';
 
@@ -51,6 +52,8 @@ export function Main() {
         return <Play onResize={adjustWindow} />;
       case kMainScreens.Record:
         return <Record onResize={adjustWindow} />;
+      case kMainScreens.Patch:
+        return <Patcher />;
     }
   }
 

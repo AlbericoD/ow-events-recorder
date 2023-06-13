@@ -5,10 +5,11 @@ import hlStyle from 'react-syntax-highlighter/dist/esm/styles/hljs/monokai-subli
 
 import { useCommonState } from '../../hooks/use-common-state';
 import { useTimeline } from '../../hooks/use-timeline';
-import { RecordingEvent } from '../../shared';
 import { classNames, formatTime } from '../../utils';
 
 import './Log.scss';
+import { usePrevious } from '../../hooks/use-previous';
+import { RecordingEvent } from '../../constants/types';
 
 SyntaxHighlighter.registerLanguage('json', json);
 
@@ -44,6 +45,8 @@ export function Log({ className }: LogProps) {
     return null;
   }, [recording?.startTime, seek, timeline]);
 
+  const prevIndex = usePrevious(recentIndex);
+
   const toggleExpand = (index: number) => {
     setExpandedEvents(expanded => {
       if (expanded.includes(index)) {
@@ -59,48 +62,35 @@ export function Log({ className }: LogProps) {
     overwolf.utils.placeOnClipboard(copyText);
   };
 
-  const scrollToIndex = useCallback((index: number) => {
-    if (!eventsListRef.current) {
-      return false;
+  const blinkEl = useCallback((el: Element) => {
+    if (el.classList.contains('blink')) {
+      return;
     }
 
-    const recentEl = eventsListRef.current.children[index];
+    el.addEventListener('animationend', (e: any) => {
+      if (e.animationName === 'LogRecentBlink') {
+        el.classList.remove('blink');
+      }
+    }, { once: true });
 
-    if (!recentEl) {
-      return false;
-    }
-
-    recentEl.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center'
-    });
-
-    if (!recentEl.classList.contains('recent')) {
-      recentEl.addEventListener('animationend', (e: any) => {
-        if (e.animationName) {
-          recentEl.classList.remove('recent');
-        }
-      }, { once: true });
-
-      recentEl.classList.add('recent');
-    }
-
-    return true;
+    el.classList.add('blink');
   }, []);
 
-  useEffect(() => {
-    setExpandedEvents([]);
+  const scrollToEl = (el: Element, smooth = false) => {
+    el.scrollIntoView({
+      behavior: smooth ? 'smooth' : 'auto',
+      block: 'nearest'
+    });
+  };
 
+  const scrollToRecent = (index: number, smooth = false) => {
     if (eventsListRef.current) {
-      eventsListRef.current.scrollTop = 0;
-    }
-  }, [recording?.uid]);
+      const recentEl = eventsListRef.current.children[index];
 
-  useEffect(() => {
-    if (isPlaying && recentIndex !== null) {
-      scrollToIndex(recentIndex);
+      scrollToEl(recentEl, smooth);
+      blinkEl(recentEl);
     }
-  }, [isPlaying, recentIndex, scrollToIndex]);
+  };
 
   const eventsList = useMemo(() => {
     if (!recording || !timeline) {
@@ -152,6 +142,47 @@ export function Log({ className }: LogProps) {
     );
   }, [expandedEvents, recording, timeline]);
 
+  useEffect(() => {
+    setExpandedEvents([]);
+
+    if (eventsListRef.current) {
+      eventsListRef.current.scrollTop = 0;
+    }
+  }, [recording?.uid]);
+
+  useEffect(() => {
+    if (
+      !isPlaying ||
+      !eventsListRef.current ||
+      recentIndex === null ||
+      prevIndex === null
+    ) {
+      return;
+    }
+
+    const recentEl = eventsListRef.current.children[recentIndex];
+
+    if (!recentEl) {
+      return;
+    }
+
+    scrollToEl(recentEl);
+
+    const diff = recentIndex - prevIndex;
+
+    if (diff === 1) {
+      blinkEl(recentEl);
+    } else if (diff > 1) {
+      for (let i = prevIndex + 1; i <= recentIndex; i++) {
+        const el = eventsListRef.current.children[i];
+
+        if (el) {
+          blinkEl(el);
+        }
+      }
+    }
+  }, [blinkEl, isPlaying, prevIndex, recentIndex]);
+
   if (!recording || !timeline) {
     return (
       <div className={classNames('Log', className)}>
@@ -169,7 +200,7 @@ export function Log({ className }: LogProps) {
         !isPlaying && recentIndex !== null &&
         <button
           className="scroll-to-recent"
-          onClick={() => scrollToIndex(recentIndex)}
+          onClick={() => scrollToRecent(recentIndex)}
         >Go to recent</button>
       }
     </div>

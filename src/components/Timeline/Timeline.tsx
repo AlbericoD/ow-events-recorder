@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { EventTooltip } from '../EventTooltip/EventTooltip';
 
-import { RecordingEvent, RecordingTimeline } from '../../shared';
+import { RecordingEvent, RecordingEventTypes, RecordingGameEvent, RecordingInfoUpdate, RecordingTimeline } from '../../constants/types';
 import { useCommonState } from '../../hooks/use-common-state';
 import { useTimeline } from '../../hooks/use-timeline';
 import { usePersState } from '../../hooks/use-pers-state';
@@ -125,7 +125,7 @@ export function Timeline({ className }: TimelineProps) {
     isPlaying = useCommonState('isPlaying');
 
   const
-    // speed = usePersState('playerSpeed'),
+    speed = usePersState('playerSpeed'),
     scale = usePersState('timelineScale');
 
   const timeline = useTimeline(recording?.uid ?? '');
@@ -135,10 +135,47 @@ export function Timeline({ className }: TimelineProps) {
     [changing, setChanging] = useState(false),
     [userSeek, setUserSeek] = useState(() => playerSeek);
 
+  const lineTransitionFactor = (mouseDownPos === null && !changing)
+    ? Math.min(speed, 2.5)
+    : 1;
+
   const seek = useMemo(
     () => (mouseDownPos !== null || changing) ? userSeek : playerSeek,
     [changing, mouseDownPos, playerSeek, userSeek]
   );
+
+  /* const { features, types } = useMemo(() => {
+    if (!timeline) {
+      return { features: [], types: [] };
+    }
+
+    const
+      features: string[] = [],
+      types: string[] = [];
+
+    for (var [, event] of timeline) {
+      if (!types.includes(event.type)) {
+        types.push(event.type);
+      }
+
+      if (
+        event.type === RecordingEventTypes.GameEvent ||
+        event.type === RecordingEventTypes.InfoUpdate ||
+        event.type === RecordingEventTypes.LauncherEvent ||
+        event.type === RecordingEventTypes.LauncherInfoUpdate
+      ) {
+        const feature = event.data?.feature;
+
+        if (feature && !features.includes(feature)) {
+          features.push(feature);
+        }
+      }
+    }
+
+    console.log({features, types});
+
+    return { features, types };
+  }, [timeline]); */
 
   const {
     size,
@@ -214,7 +251,7 @@ export function Timeline({ className }: TimelineProps) {
       size,
       timeline,
       recording?.startTime ?? 0,
-      (scale >= 4) ? kEventChunkInterval * 2 : kEventChunkInterval
+      (scale >= 4) ? kEventChunkInterval * 4 : kEventChunkInterval
     );
 
     const renderChunk = ({ pos, time, events }: EventsChunk) => (
@@ -351,7 +388,7 @@ export function Timeline({ className }: TimelineProps) {
         style={{
           width: `${sectorCount * 100}%`,
           transform: `translateX(${position * -100}%)`,
-          // transition: `${100 * speed}ms transform linear`
+          transition: `${lineTransitionFactor * 100}ms transform linear`
         }}
       >
         {prevSectorRendered}

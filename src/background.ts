@@ -1,13 +1,15 @@
 import { EventEmitter, LauncherStatus, GameStatus, OverwolfWindow, WindowTunnel, log } from 'ow-libs';
 import { debounce } from 'throttle-debounce';
 
-import { kWindowNames, kEventBusName, kRecordingReaderWriterName } from './constants/config';
-import { EventBusEvents, OpenFilePickerMultiResult } from './constants/types';
+import { kWindowNames, kEventBusName, kRecordingReaderWriterName, kRecordingExportedExt } from './constants/config';
+import { EventBusEvents, ExtensionMessageEvent, OpenFilePickerMultiResult, WSClientMessage, WSServerLoad, WSServerMessage, WSServerMessageTypes, WSServerPause, WSServerPlay, WSServerSetSeek, WSServerSetSpeed } from './constants/types';
 import { RecorderService } from './services/recorder';
-import { ExtensionMessageEvent, WSClientMessage, WSServerLoad, WSServerMessage, WSServerMessageTypes, WSServerPause, WSServerPlay, WSServerSetSeek, WSServerSetSpeed, isWSClientUpdate, kRecordingExportedExt } from './shared';
 import { makeCommonStore } from './store/common';
 import { makePersStore } from './store/pers';
 import { RecordingReaderWriter } from './services/recording-writer';
+import { ERPIOService } from './services/erp-io';
+import { PatcherService } from './services/patcher';
+import { isWSClientUpdate } from './constants/type-guards';
 
 class BackgroundController {
   readonly eventBus = new EventEmitter<EventBusEvents>();
@@ -16,8 +18,10 @@ class BackgroundController {
   readonly state = makeCommonStore();
   readonly persState = makePersStore();
   readonly mainWin = new OverwolfWindow(kWindowNames.main);
+  readonly erpIO = new ERPIOService();
   readonly rs = new RecorderService();
-  readonly rw = new RecordingReaderWriter();
+  readonly rw = new RecordingReaderWriter(this.erpIO);
+  readonly patcher = new PatcherService(this.erpIO);
 
   readonly seekDebounced = debounce(200, this.seek);
 
@@ -92,7 +96,9 @@ class BackgroundController {
       importFromPaths: paths => this.importFromPaths(paths),
       export: uid => this.export(uid),
 
-      setTimelineScale: scale => this.persState.timelineScale = scale
+      setTimelineScale: scale => this.persState.timelineScale = scale,
+
+      patchApp: path => this.patchApp(path)
     });
 
     this.rs.on({
@@ -405,6 +411,35 @@ class BackgroundController {
     return new Promise(resolve => {
       overwolf.utils.openFolderPicker(intialPath, resolve);
     });
+  }
+
+  async patchApp(path?: string) {
+    console.log('patchApp():', path);
+
+    if (!path) {
+      const filePickResult: any = await this.openFilePicker(
+        '',
+        this.persState.lastPath ?? overwolf.io.paths.documents,
+        false
+      );
+
+      console.log('patchApp(): file pick result', filePickResult);
+
+      if (filePickResult.success && filePickResult.file) {
+        path = filePickResult.file;
+      }
+    }
+
+    if (!path) {
+      return;
+    }
+
+    try {
+      await this.patcher.patchApp(path);
+    } catch (e: any) {
+      console.warn('patchApp(): error:', e);
+      this.eventBus.emit('patchAppError', e.message);
+    }
   }
 
   async import() {

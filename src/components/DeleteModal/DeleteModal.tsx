@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 
+import { RecordingHeader } from '../../constants/types';
 import { classNames } from '../../utils';
-import { RecordingHeader } from '../../shared';
 
 import './DeleteModal.scss';
 

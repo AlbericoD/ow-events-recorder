@@ -1,0 +1,43 @@
+.Patcher {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 380px;
+  height: 157px;
+  padding: 30px;
+  line-height: 20px;
+  font-family: Madera, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+  cursor: pointer;
+
+  &::before {
+    display: block;
+    content: '';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    z-index: 999999;
+    color: #fff;
+    border: 2px dotted #9f9f9f80;
+    border-radius: 4px;
+    pointer-events: none;
+    transition: border-color .2s ease-in-out;
+  }
+
+  &:hover::before {
+    border-color: #9f9f9fcc;
+  }
+
+  &.drag-over::before {
+    border-color: #fff;
+  }
+
+  .error {
+    color: #d33f37;
+  }
+}

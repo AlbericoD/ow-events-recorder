@@ -79,3 +79,37 @@ export const formatTime = (ms: number, includeMs = false) => {
 export const clamp = (number: number, min: number, max: number) => {
   return Math.min(Math.max(number, min), max);
 }
+
+export function dir(path: string): Promise<overwolf.io.DirResult> {
+  return new Promise(resolve => overwolf.io.dir(path, resolve));
+}
+
+export function writeFile(path: string, content: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    overwolf.io.writeFileContents(
+      path,
+      content,
+      overwolf.io.enums.eEncoding.UTF8,
+      true,
+      result => {
+        if (result.success) {
+          resolve();
+        } else {
+          reject(result);
+        }
+      }
+    );
+  });
+}
+
+export const sanitizePath = (path: string): string => {
+  return path.replaceAll('\\', '/');
+}
+
+export const sanitizeDirPath = (path: string): string => {
+  if (path[path.length - 1] !== '/') {
+    path += '/';
+  }
+
+  return sanitizePath(path);
+}

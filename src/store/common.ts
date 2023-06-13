@@ -1,6 +1,6 @@
 import { makeNiceState, StateManager, Viewport } from 'ow-libs';
 
-import { RecordingHeader } from '../shared';
+import { RecordingHeader } from '../constants/types';
 
 export interface CommonState {
   playerSeek: number

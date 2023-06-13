@@ -3,7 +3,7 @@
   overflow: hidden;
   margin: 0 1px;
   width: calc(100% - 2px);
-  height: 81px;
+  height: 91px;
   background: linear-gradient(180deg, rgba(13, 13, 13, 0) 0%, #0D0D0D 100%);
   border-bottom: 1px solid #0D0D0D;
   overflow: hidden;
@@ -24,7 +24,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    transition: 110ms transform linear;
+    // transition: 1000ms transform linear;
     will-change: transform;
     pointer-events: none;
   }

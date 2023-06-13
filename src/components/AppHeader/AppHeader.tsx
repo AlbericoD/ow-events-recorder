@@ -71,6 +71,13 @@ export function AppHeader({
           )}
           onClick={e => handleOnChangeScreen(e, kMainScreens.Play)}
         >Play</button>
+        <button
+          className={classNames(
+            'tab',
+            { active: screen === kMainScreens.Patch }
+          )}
+          onClick={e => handleOnChangeScreen(e, kMainScreens.Patch)}
+        >Patch</button>
       </nav>
 
       <div className="window-controls" onMouseDown={stopPropagation}>

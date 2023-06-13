@@ -1,8 +1,7 @@
 import { EventEmitter, delay, log } from 'ow-libs';
 import { v4 as uuid } from 'uuid';
 
-import { Recording, RecordingInProgress, RecordingEventTypes, RecordingTimelineRaw, RecordingTimeline, RecordingEvent, RecordingGameFeaturesSet, RecordingLauncherFeaturesSet, RecordingLauncherLaunched, RecordingLauncherUpdated, RecordingLauncherTerminated, RecordingGameLaunched, RecordingGameInfo, RecordingLauncherEvent, RecordingLauncherInfoUpdate, RecordingInfoUpdate, RecordingGameEventError, RecordingGameEvent } from '../shared';
-import { OverwolfGameFeatures } from '../constants/types';
+import { Recording, RecordingInProgress, OverwolfGameFeatures, RecordingLauncherLaunched, RecordingEventTypes, RecordingLauncherUpdated, RecordingLauncherTerminated, RecordingGameLaunched, RecordingGameInfo, RecordingLauncherInfoUpdate, RecordingLauncherEvent, RecordingInfoUpdate, RecordingGameEvent, RecordingGameEventError, RecordingEvent, RecordingLauncherFeaturesSet, RecordingGameFeaturesSet, RecordingTimelineRaw, RecordingTimeline } from '../constants/types';
 
 export interface RecorderServiceEvents {
   started: number

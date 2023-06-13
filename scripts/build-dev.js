@@ -41,7 +41,7 @@ const { checkBrowsers } = require('react-dev-utils/browsersHelper');
 
 // Create a development build and print the deployment instructions.
 function build(config) {
-  console.log('Creating a development build...');
+  console.log(chalk.cyan('Starting the development build...\n'));
 
   const compiler = webpack(config);
 

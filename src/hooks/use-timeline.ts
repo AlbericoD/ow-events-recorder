@@ -3,7 +3,7 @@ import { WindowTunnel } from 'ow-libs';
 
 import { kRecordingReaderWriterName } from '../constants/config';
 import { RecordingReaderWriter } from '../services/recording-writer';
-import { RecordingTimeline } from '../shared';
+import { RecordingTimeline } from '../constants/types';
 
 // get RecordingReaderWriter instance from background window
 const reader = WindowTunnel.get<RecordingReaderWriter>(
@@ -25,7 +25,6 @@ const loadTimeline = (uid: string): Promise<RecordingTimeline | null> => {
 };
 
 const unloadTimeline = (uid: string) => {
-  console.log('unloadTimeline():', uid);
   timelinePromises.delete(uid);
 };
 

@@ -75,7 +75,7 @@
   }
 
   @keyframes LogRecentBlink {
-    50% {
+    10% {
       color: #ccc;
       background-color: rgba(211, 64, 55, 0.15);
     }
@@ -109,8 +109,8 @@
       }
     }
 
-    &.recent {
-      animation: LogRecentBlink 1s ease-in-out;
+    &.blink {
+      animation: LogRecentBlink .666s ease-in-out;
     }
 
     &:hover,

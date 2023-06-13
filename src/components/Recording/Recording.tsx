@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { debounce } from 'throttle-debounce';
 
 import { classNames, formatTime } from '../../utils';
-import { RecordingHeader } from '../../shared';
 import { eventBus } from '../../services/event-bus';
 import { kDefaultLocale } from '../../constants/config';
+import { RecordingHeader } from '../../constants/types';
 
 import { DeleteModal } from '../DeleteModal/DeleteModal';
 

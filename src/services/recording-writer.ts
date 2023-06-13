@@ -1,93 +1,18 @@
-import { OverwolfPlugin } from 'ow-libs';
 import { v4 as uuid } from 'uuid';
 
-import { Recording, RecordingHeader, RecordingReader, kOverwolfFSPrefix, kRecordingExportedExt, kRecordingHeaderFile, kRecordingTimelineFile, kRecordingsDir, writeFile } from '../shared';
-
-interface ERPPlugin {
-  unzipFile(
-    sourceArchiveFileName: string,
-    destinationDirectoryName: string,
-    cb: overwolf.CallbackFunction<overwolf.Result>
-  ): void
-  zipDirectory(
-    sourceDirectoryPath: string,
-    destinationArchiveFileName: string,
-    cb: overwolf.CallbackFunction<overwolf.Result>
-  ): void
-  move(
-    sourcePath: string,
-    destPath: string,
-    overwrite: boolean,
-    callback: overwolf.CallbackFunction<overwolf.Result>
-  ): void
-  delete(
-    path: string,
-    cb: overwolf.CallbackFunction<overwolf.Result>
-  ): void
-}
+import { kOverwolfFSPrefix, kTempDir, kRecordingHeaderFile, kRecordingExportedExt, kRecordingTimelineFile } from '../constants/config';
+import { RecordingReader } from './recording-reader';
+import { RecordingHeader, Recording } from '../constants/types';
+import { ERPIOService } from './erp-io';
+import { sanitizeDirPath, sanitizePath, writeFile } from '../utils';
 
 export class RecordingReaderWriter extends RecordingReader {
-  #plugin = new OverwolfPlugin<ERPPlugin>('erp');
+  #io: ERPIOService
 
-  async #zipDirectory(
-    sourceArchiveFileName: string,
-    destinationDirectoryName: string
-  ) {
-    const erpPlugin = await this.#plugin.getPlugin();
-
-    await new Promise<void>((resolve, reject) => {
-      erpPlugin.zipDirectory(
-        sourceArchiveFileName,
-        destinationDirectoryName,
-        result => result.success ? resolve() : reject(new Error(result.error))
-      );
-    });
+  constructor(erpIO: ERPIOService) {
+    super();
+    this.#io = erpIO;
   }
-
-  async #unzipFile(
-    sourceDirectoryPath: string,
-    destinationArchiveFileName: string
-  ) {
-    const erpPlugin = await this.#plugin.getPlugin();
-
-    await new Promise<void>((resolve, reject) => {
-      erpPlugin.unzipFile(
-        sourceDirectoryPath,
-        destinationArchiveFileName,
-        result => result.success ? resolve() : reject(new Error(result.error))
-      );
-    });
-  }
-
-  async #moveFile(
-    sourcePath: string,
-    destPath: string,
-    overwrite: boolean,
-  ) {
-    const erpPlugin = await this.#plugin.getPlugin();
-
-    await new Promise<void>((resolve, reject) => {
-      erpPlugin.move(
-        sourcePath,
-        destPath,
-        overwrite,
-        result => result.success ? resolve() : reject(new Error(result.error))
-      );
-    });
-  }
-
-  /* async #deleteFile(path: string) {
-    const erpPlugin = await this.#plugin.getPlugin();
-
-    console.log('#deleteFile():', path);
-
-    await new Promise<void>((resolve, reject) => {
-      erpPlugin.delete(
-        path,
-        result => result.success ? resolve() : reject(new Error(result.error))
-      );
-    });
-  } */
 
   async #getHeaderByPath(headerPath: string): Promise<RecordingHeader | null> {
     const response = await fetch(kOverwolfFSPrefix + headerPath);
@@ -103,13 +28,13 @@ export class RecordingReaderWriter extends RecordingReader {
   }
 
   async import(filePath: string) {
-    let tempDir = `${kRecordingsDir}temp/${uuid()}/`;
+    let tempDir = `${kTempDir}${uuid()}/`;
 
     try {
-      tempDir = RecordingReaderWriter.sanitizePath(tempDir);
-      filePath = RecordingReaderWriter.sanitizePath(filePath);
+      tempDir = sanitizePath(tempDir);
+      filePath = sanitizePath(filePath);
 
-      await this.#unzipFile(filePath, tempDir);
+      await this.#io.unzipFile(filePath, tempDir);
 
       const header = await this.#getHeaderByPath(
         tempDir + kRecordingHeaderFile
@@ -119,7 +44,7 @@ export class RecordingReaderWriter extends RecordingReader {
         throw new Error('Could not import: faulty header');
       }
 
-      await this.#moveFile(
+      await this.#io.move(
         tempDir,
         RecordingReader.getDirPath(header.uid),
         true
@@ -148,13 +73,13 @@ export class RecordingReaderWriter extends RecordingReader {
         .replaceAll('T', ' ')
         .replaceAll('Z', '');
 
-      exportDir = RecordingReaderWriter.sanitizeDirPath(exportDir);
+      exportDir = sanitizeDirPath(exportDir);
 
       const filePath =
         exportDir + `${header.title} by ${header.author} ${dateString}` +
         '.' + kRecordingExportedExt;
 
-      await this.#zipDirectory(
+      await this.#io.zipDirectory(
         RecordingReader.getDirPath(uid),
         filePath
       );
@@ -188,27 +113,8 @@ export class RecordingReaderWriter extends RecordingReader {
   }
 
   async remove(uid: string) {
-    const erpPlugin = await this.#plugin.getPlugin();
-
     const path = RecordingReaderWriter.getDirPath(uid);
 
-    await new Promise<void>((resolve, reject) => {
-      erpPlugin.delete(
-        path,
-        result => result.success ? resolve() : reject(new Error(result.error))
-      );
-    });
-  }
-
-  protected static sanitizePath(path: string): string {
-    return path.replaceAll('\\', '/');
-  }
-
-  protected static sanitizeDirPath(path: string): string {
-    if (path[path.length - 1] !== '/') {
-      path += '/';
-    }
-
-    return RecordingReaderWriter.sanitizePath(path);
+    await this.#io.delete(path);
   }
 }

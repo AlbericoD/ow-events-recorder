@@ -5,8 +5,7 @@ import { useCommonState } from '../../hooks/use-common-state';
 import { usePersState } from '../../hooks/use-pers-state';
 import { eventBus } from '../../services/event-bus';
 import { classNames, formatTime } from '../../utils';
-import { RecordingHeader, kRecordingExportedExt } from '../../shared';
-import { kDefaultLocale } from '../../constants/config';
+import { kDefaultLocale, kRecordingExportedExt } from '../../constants/config';
 
 import { Recording } from '../Recording/Recording';
 import { ProgressBar } from '../ProgressBar/ProgressBar';
@@ -17,6 +16,7 @@ import { Timeline } from '../Timeline/Timeline';
 import { Log } from '../Log/Log';
 
 import './Play.scss';
+import { RecordingHeader } from '../../constants/types';
 
 export type PlayProps = {
   className?: string
@@ -331,8 +331,6 @@ export function Play({ className }: PlayProps) {
       setDrag(false);
 
       const paths = filtered.map((f: any) => f.path);
-
-      console.log(paths);
 
       eventBus.emit('importFromPaths', paths);
     };

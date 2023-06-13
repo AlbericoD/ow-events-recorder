@@ -4,7 +4,7 @@ import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import json from 'react-syntax-highlighter/dist/esm/languages/hljs/json';
 import hlStyle from 'react-syntax-highlighter/dist/esm/styles/hljs/monokai-sublime';
 
-import { RecordingEvent } from '../../shared';
+import { RecordingEvent } from '../../constants/types';
 import { classNames, formatTime } from '../../utils';
 
 import './EventTooltip.scss';
