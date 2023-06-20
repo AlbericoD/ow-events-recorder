@@ -1,0 +1,48 @@
+.RecordingInfo {
+  line-height: 18px;
+  color: #808080;
+  font-size: 13px;
+
+  li {
+    display: flex;
+    align-items: center;
+    min-height: 30px;
+
+    strong {
+      margin-left: auto;
+      font-weight: 400;
+      color: #ccc;
+      text-align: right;
+    }
+  }
+
+  .play-speed {
+    display: flex;
+    margin-left: auto;
+    padding: 3px;
+    background: #262626;
+    border-radius: 11px;
+
+    button {
+      display: block;
+      padding: 0 6px;
+      line-height: 18px;
+      color: #E5E5E5;
+      font-weight: 400;
+      font-size: 10px;
+      text-align: center;
+      border-radius: 9px;
+      transition: all .2s ease-in-out;
+      cursor: pointer;
+
+      &.active {
+        color: #fff;
+        background: #4D4D4D;
+      }
+    }
+  }
+
+  .DropDownMultiple {
+    margin-left: auto;
+  }
+}

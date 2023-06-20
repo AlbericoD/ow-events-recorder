@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { EventTooltip } from '../EventTooltip/EventTooltip';
 
-import { RecordingEvent, RecordingEventTypes, RecordingGameEvent, RecordingInfoUpdate, RecordingTimeline } from '../../constants/types';
+import { RecordingEvent } from '../../constants/types';
 import { useCommonState } from '../../hooks/use-common-state';
 import { useTimeline } from '../../hooks/use-timeline';
 import { usePersState } from '../../hooks/use-pers-state';
 import { eventBus } from '../../services/event-bus';
-import { clamp, classNames, formatTime } from '../../utils';
+import { getSectorSeconds, getSectorEvents } from './timeline-utils';
+import { clamp, classNames } from '../../utils';
 
 import './Timeline.scss';
 
@@ -15,13 +16,13 @@ export type TimelineProps = {
   className?: string
 }
 
-type EventsChunk = {
+export type EventsChunk = {
   pos: number
   time: number
   events: RecordingEvent[]
 }
 
-type Tick = {
+export type Tick = {
   pos: number
   value: string | null
 }
@@ -32,88 +33,21 @@ type TimelineSectorData = {
   position: number
   sectorCount: number
   currentSector: number
-  prevSector: number
-  nextSector: number
 }
 
 const
   kPositionOffset = .2,
   kSectorSize = 20000, // ms
   kEventChunkInterval = 500, // ms
-  kMaxMouseMoveFactor = 750, // px
-  kMaxMoveIncrement = 1000, // ms
-  kMoveTickInterval = 100; // ms
+  kMoveIncrement = 50, // ms
+  kMoveTickInterval = 50, // ms
+  kMaxSpeedMultiplier = 6;
 
-const getSectorSeconds = (sectorN: number, sectorSize: number) => {
-  const
-    sectorStart = sectorN * sectorSize,
-    sectorEnd = sectorStart + sectorSize,
-    incr = sectorSize / 40;
-
-  /** Time in ms from start of recording */
-  let time = sectorStart;
-
-  const out: Tick[] = [];
-
-  let lastTime = '';
-
-  while (time < sectorEnd) {
-    const tick: Tick = {
-      pos: (time - sectorStart) / sectorSize,
-      value: null
-    };
-
-    if ((time % (incr * 2)) === 0) {
-      const value = formatTime(time);
-
-      if (value !== lastTime) {
-        lastTime = value;
-        tick.value = value;
-      }
-    }
-
-    out.push(tick);
-
-    time += incr;
-  }
-
-  return out;
-};
-
-const getSectorEvents = (
-  sectorN: number,
-  sectorSize: number,
-  timeline: RecordingTimeline,
-  startTime: number,
-  chunkInterval: number
-) => {
-  const
-    sectorStart = sectorN * sectorSize,
-    sectorEnd = sectorStart + sectorSize;
-
-  const out: EventsChunk[] = [];
-
-  for (var [timestamp, event] of timeline) {
-    /** Time in ms from start of recording */
-    const time = timestamp - startTime;
-
-    if (time >= sectorStart && time <= sectorEnd) {
-      const lastChunk = out[out.length-1];
-
-      if (lastChunk && time < lastChunk.time + chunkInterval) {
-        lastChunk.events.push(event);
-      } else {
-        out.push({
-          time,
-          pos: (time - sectorStart) / sectorSize,
-          events: [event]
-        });
-      }
-    }
-  }
-
-  return out;
-};
+enum MovingDirection {
+  None = 0,
+  Forward = 1,
+  Backward = -1
+}
 
 export function Timeline({ className }: TimelineProps) {
 
@@ -126,65 +60,34 @@ export function Timeline({ className }: TimelineProps) {
 
   const
     speed = usePersState('playerSpeed'),
-    scale = usePersState('timelineScale');
+    scale = usePersState('timelineScale'),
+    typesFilter = usePersState('typesFilter'),
+    featuresFilter = usePersState('featuresFilter');
 
-  const timeline = useTimeline(recording?.uid ?? '');
+  const timeline = useTimeline(
+    recording?.uid ?? '',
+    typesFilter,
+    featuresFilter
+  );
 
   const
-    [mouseDownPos, setMouseDownPos] = useState<number | null>(null),
+    [moving, setMoving] = useState(MovingDirection.None),
     [changing, setChanging] = useState(false),
     [userSeek, setUserSeek] = useState(() => playerSeek);
 
-  const lineTransitionFactor = (mouseDownPos === null && !changing)
-    ? Math.min(speed, 2.5)
-    : 1;
+  const lineTransitionFactor = changing ? 1 : Math.min(speed, 2.5);
 
   const seek = useMemo(
-    () => (mouseDownPos !== null || changing) ? userSeek : playerSeek,
-    [changing, mouseDownPos, playerSeek, userSeek]
+    () => (changing) ? userSeek : playerSeek,
+    [changing, playerSeek, userSeek]
   );
-
-  /* const { features, types } = useMemo(() => {
-    if (!timeline) {
-      return { features: [], types: [] };
-    }
-
-    const
-      features: string[] = [],
-      types: string[] = [];
-
-    for (var [, event] of timeline) {
-      if (!types.includes(event.type)) {
-        types.push(event.type);
-      }
-
-      if (
-        event.type === RecordingEventTypes.GameEvent ||
-        event.type === RecordingEventTypes.InfoUpdate ||
-        event.type === RecordingEventTypes.LauncherEvent ||
-        event.type === RecordingEventTypes.LauncherInfoUpdate
-      ) {
-        const feature = event.data?.feature;
-
-        if (feature && !features.includes(feature)) {
-          features.push(feature);
-        }
-      }
-    }
-
-    console.log({features, types});
-
-    return { features, types };
-  }, [timeline]); */
 
   const {
     size,
     length,
     position,
     sectorCount,
-    currentSector,
-    prevSector,
-    nextSector
+    currentSector
   } = useMemo<TimelineSectorData>(() => {
     if (!recording) {
       return {
@@ -192,9 +95,7 @@ export function Timeline({ className }: TimelineProps) {
         length: 1,
         position: 0,
         sectorCount: 0,
-        currentSector: 0,
-        prevSector: -1,
-        nextSector: 1
+        currentSector: 0
       };
     }
 
@@ -206,25 +107,41 @@ export function Timeline({ className }: TimelineProps) {
       position = Math.min(seek / length, 1),
       positionAdjusted = (position * (lengthInSectors / sectorCount)),
       positionWithOffset = positionAdjusted - (kPositionOffset / sectorCount),
-      currentSector = Math.floor(position * lengthInSectors),
-      prevSector = currentSector - 1,
-      nextSector = currentSector + 1;
+      currentSector = Math.floor(position * lengthInSectors);
 
     return {
       size,
       length,
       position: positionWithOffset,
       sectorCount,
-      currentSector,
-      prevSector,
-      nextSector
+      currentSector
     };
   }, [recording, scale, seek]);
 
-  const onMouseDown = (e: MouseEvent) => {
-    if (recording && !isPlaying && elRef.current === e.target) {
-      setMouseDownPos(e.clientX);
+  const onPanClick = (e: React.MouseEvent, direction: MovingDirection) => {
+    e.stopPropagation();
+
+    if (!isPlaying) {
+      setMoving(direction);
     }
+  };
+
+  const onTimelineClick = (e: MouseEvent) => {
+    if (!elRef.current || elRef.current !== e.target) {
+      return;
+    }
+
+    if (!recording || isPlaying) {
+      return;
+    }
+
+    const
+      { left, width } = elRef.current.getBoundingClientRect(),
+      clickPos = ((e.clientX - left) / width) - kPositionOffset,
+      targetSeek = Math.round(seek + (clickPos * size));
+
+    setChanging(true);
+    eventBus.emit('seek', targetSeek);
   };
 
   const setScale = (scale: number) => eventBus.emit('setTimelineScale', scale);
@@ -242,16 +159,19 @@ export function Timeline({ className }: TimelineProps) {
       return <></>;
     }
 
-    const sectorWidth = 100 / sectorCount;
-
-    const seconds = getSectorSeconds(sectorN, size);
+    const
+      sectorWidth = 100 / sectorCount,
+      seconds = getSectorSeconds(sectorN, size),
+      chunkInterval = (scale >= 4)
+        ? kEventChunkInterval * 4
+        : kEventChunkInterval;
 
     const events = getSectorEvents(
       sectorN,
       size,
       timeline,
       recording?.startTime ?? 0,
-      (scale >= 4) ? kEventChunkInterval * 4 : kEventChunkInterval
+      chunkInterval
     );
 
     const renderChunk = ({ pos, time, events }: EventsChunk) => (
@@ -281,8 +201,8 @@ export function Timeline({ className }: TimelineProps) {
   }, [recording, scale, timeline, sectorCount, size]);
 
   const prevSectorRendered = useMemo(
-    () => renderSector(prevSector),
-    [renderSector, prevSector]
+    () => renderSector(currentSector - 1),
+    [currentSector, renderSector]
   );
 
   const currentSectorRendered = useMemo(
@@ -291,8 +211,8 @@ export function Timeline({ className }: TimelineProps) {
   );
 
   const nextSectorRendered = useMemo(
-    () => renderSector(nextSector),
-    [renderSector, nextSector]
+    () => renderSector(currentSector + 1),
+    [renderSector, currentSector]
   );
 
   useEffect(() => {
@@ -301,32 +221,36 @@ export function Timeline({ className }: TimelineProps) {
   }, [playerSeek]);
 
   useEffect(() => {
-    if (isPlaying || mouseDownPos === null) {
-      return;
-    }
-
     let
       tickIntervalHandle: number | null = null,
-      moveFactor = 0;
-
-    const onMouseMoved = (e: MouseEvent) => {
-      let value = e.clientX - mouseDownPos;
-
-      value = clamp(value, -kMaxMouseMoveFactor, kMaxMouseMoveFactor);
-
-      moveFactor = value / kMaxMouseMoveFactor;
-    };
+      iteration = 0,
+      speedMultiplier = 1;
 
     const onMoveTick = (fireEvent = false) => {
+      speedMultiplier = Math.min(
+        speedMultiplier + (.01 * iteration),
+        kMaxSpeedMultiplier
+      );
+
+      iteration++;
+
+      // console.log('onMoveTick()', speedMultiplier, iteration);
+
+      setChanging(true);
+
       setUserSeek(value => {
-        value += kMaxMoveIncrement * moveFactor;
+        switch (moving) {
+          case MovingDirection.Forward:
+            value += kMoveIncrement * speedMultiplier;
+            break;
+          case MovingDirection.Backward:
+            value -= kMoveIncrement * speedMultiplier;
+            break;
+        }
 
-        value = Math.round(value);
-
-        value = clamp(value, 0, length);
+        value = clamp(Math.round(value), 0, length);
 
         if (fireEvent) {
-          setChanging(true);
           eventBus.emit('seek', value);
         }
 
@@ -334,22 +258,19 @@ export function Timeline({ className }: TimelineProps) {
       });
     };
 
-    const onMouseUp = () => {
-      onMoveTick(true);
-      setMouseDownPos(null);
-    };
+    const onMouseUp = () => setMoving(direction => {
+      if (direction !== MovingDirection.None) {
+        onMoveTick(true);
+      }
 
-    const onBlur = () => setMouseDownPos(null);
+      return MovingDirection.None;
+    });
 
-    window.addEventListener('blur', onBlur);
+    document.documentElement.addEventListener('mouseup', onMouseUp);
 
-    if (mouseDownPos !== null) {
+    if (moving !== MovingDirection.None) {
       onMoveTick();
       tickIntervalHandle = window.setInterval(onMoveTick, kMoveTickInterval);
-
-      document.documentElement.addEventListener('mousemove', onMouseMoved);
-      document.documentElement.addEventListener('mouseup', onMouseUp);
-      window.addEventListener('blur', onBlur);
     }
 
     return () => {
@@ -357,11 +278,9 @@ export function Timeline({ className }: TimelineProps) {
         window.clearInterval(tickIntervalHandle);
       }
 
-      document.documentElement.removeEventListener('mousemove', onMouseMoved);
       document.documentElement.removeEventListener('mouseup', onMouseUp);
-      window.removeEventListener('blur', onBlur);
     };
-  }, [isPlaying, mouseDownPos, length]);
+  }, [length, moving]);
 
   if (!recording || !timeline) {
     return (
@@ -376,12 +295,8 @@ export function Timeline({ className }: TimelineProps) {
   return (
     <div
       ref={elRef}
-      className={classNames(
-        'Timeline',
-        className,
-        { 'mouse-down': mouseDownPos !== null }
-      )}
-      onMouseDown={e => onMouseDown(e.nativeEvent)}
+      className={classNames('Timeline', className)}
+      onClick={e => onTimelineClick(e.nativeEvent)}
     >
       <div
         className="line"
@@ -399,6 +314,15 @@ export function Timeline({ className }: TimelineProps) {
       <div
         className="current-position"
         style={{ left: `${kPositionOffset * 100}%` }}
+      />
+
+      <button
+        className="backward"
+        onMouseDown={e => onPanClick(e, MovingDirection.Backward)}
+      />
+      <button
+        className="forward"
+        onMouseDown={e => onPanClick(e, MovingDirection.Forward)}
       />
 
       <div

@@ -24,6 +24,9 @@ export type EventBusEvents = {
 
   patchApp?: string
   patchAppError: string
+
+  typesFilter: string[] | null
+  featuresFilter: string[] | null
 }
 
 export interface OpenFilePickerMultiResult extends overwolf.Result {
@@ -60,7 +63,6 @@ export type ResultCallback<T extends overwolf.Result>
 export type NullableResultCallback<T extends overwolf.Result | null>
   = (result: T | null) => void;
 
-/* eslint-disable no-unused-vars */
 export enum RecordingEventTypes {
   GameLaunched = 'GameLaunched',
   GameInfo = 'GameInfo',
@@ -159,6 +161,12 @@ export type RecordingEvent =
   RecordingLauncherEvent |
   RecordingLauncherInfoUpdate
 
+export type RecordingGEPLEPEvent =
+  RecordingGameEvent |
+  RecordingInfoUpdate |
+  RecordingLauncherEvent |
+  RecordingLauncherInfoUpdate
+
 export type RecordingTimelineRaw = Map<number, RecordingEvent[]>
 
 export type RecordingTimeline = [number, RecordingEvent][]
@@ -193,6 +201,7 @@ export enum WSClientMessageTypes {
 export interface WSClientMessage {
   type: WSClientMessageTypes
   messageID: number
+  version?: number
 }
 
 export interface WSClientUpdate extends WSClientMessage {
@@ -200,7 +209,6 @@ export interface WSClientUpdate extends WSClientMessage {
   loaded: boolean
   seek: number
   playing: boolean
-  speed?: number
 }
 
 export enum WSServerMessageTypes {
@@ -208,22 +216,23 @@ export enum WSServerMessageTypes {
   Play,
   Pause,
   SetSeek,
-  SetSpeed
+  SetSettings
 }
 
 export interface WSServerMessage {
   type: WSServerMessageTypes
   messageID: number
+  version?: number
 }
 
 export interface WSServerLoad extends WSServerMessage {
   type: WSServerMessageTypes.Load
   recordingUID: string
+  settings: PlayerSettings
 }
 
 export interface WSServerPlay extends WSServerMessage {
   type: WSServerMessageTypes.Play
-  speed?: number
 }
 
 export interface WSServerPause extends WSServerMessage {
@@ -235,9 +244,15 @@ export interface WSServerSetSeek extends WSServerMessage {
   seek: number
 }
 
-export interface WSServerSetSpeed extends WSServerMessage {
-  type: WSServerMessageTypes.SetSpeed
+export interface WSServerSetSettings extends WSServerMessage {
+  type: WSServerMessageTypes.SetSettings
+  settings: PlayerSettings
+}
+
+export type PlayerSettings = {
   speed: number
+  typesFilter: string[]
+  featuresFilter: string[]
 }
 
 export type ExtensionMessageEvent = {

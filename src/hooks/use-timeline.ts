@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { WindowTunnel } from 'ow-libs';
 
 import { kRecordingReaderWriterName } from '../constants/config';
 import { RecordingReaderWriter } from '../services/recording-writer';
 import { RecordingTimeline } from '../constants/types';
+import { filterTimeline } from '../utils';
 
 // get RecordingReaderWriter instance from background window
 const reader = WindowTunnel.get<RecordingReaderWriter>(
@@ -25,10 +26,15 @@ const loadTimeline = (uid: string): Promise<RecordingTimeline | null> => {
 };
 
 const unloadTimeline = (uid: string) => {
+  // console.log('unloadTimeline():', uid);
   timelinePromises.delete(uid);
 };
 
-export function useTimeline(uid: string) {
+export function useTimeline(
+  uid: string,
+  typesFilter: string[] | null = null,
+  featuresFilter: string[] | null = null
+) {
   const [timeline, setTimeline] = useState<RecordingTimeline | null>(null);
 
   useEffect(() => {
@@ -48,5 +54,8 @@ export function useTimeline(uid: string) {
     };
   }, [uid]);
 
-  return timeline;
+  return useMemo(
+    () => filterTimeline(timeline, typesFilter ?? [], featuresFilter ?? []),
+    [timeline, featuresFilter, typesFilter]
+  );
 }

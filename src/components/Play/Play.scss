@@ -40,10 +40,16 @@
   .current {
     position: relative;
     grid-area: current;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    height: 390px;
   }
 
   .recordings {
     grid-area: recordings;
+    height: 390px;
   }
 
   .log {
@@ -59,6 +65,7 @@
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
+    flex: 0 0 auto;
     position: relative;
     margin: 30px 30px 16px 30px;
     padding-left: 79px;
@@ -123,63 +130,19 @@
   }
 
   .ProgressBar {
-    margin: 16px 30px;
+    flex: 0 0 auto;
+    margin: 0 30px 16px;
   }
 
-  .recording-info {
-    margin: 16px 30px 0;
-    line-height: 18px;
-    color: #808080;
-    font-size: 14px;
-
-    li {
-      display: flex;
-      padding: 6px 0;
-
-      strong {
-        margin-left: auto;
-        font-weight: 400;
-        font-size: 14px;
-        color: #ccc;
-        text-align: right;
-      }
-    }
-
-    .play-speed {
-      display: flex;
-      margin: -3px 0 0 auto;
-      padding: 3px;
-      background: #262626;
-      border-radius: 11px;
-
-      button {
-        display: block;
-        padding: 0 6px;
-        line-height: 18px;
-        color: #E5E5E5;
-        font-weight: 400;
-        font-size: 10px;
-        text-align: center;
-        border-radius: 9px;
-        transition: all .2s ease-in-out;
-        cursor: pointer;
-
-        &.active {
-          color: #fff;
-          background: #4D4D4D;
-        }
-      }
-    }
+  .RecordingInfo {
+    margin: 0 30px 16px;
   }
 
   .actions {
-    position: absolute;
-    left: 30px;
-    right: 30px;
-    bottom: 15px;
     display: flex;
     justify-content: space-between;
-    flex-wrap: wrap;
+    flex: 0 0 auto;
+    margin: auto 30px 16px;
 
     button {
       width: calc((100% / 3) - 5px);
@@ -265,7 +228,7 @@
     margin-top: 1px;
     border-right: 5px solid transparent;
     padding: 10px 5px 10px 10px;
-    height: 286px;
+    height: calc(100% - 36px - 1px - 40px - 1px - 1px);
     background: #0D0D0D;
     @include mixins.scrollable;
 

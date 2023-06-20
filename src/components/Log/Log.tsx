@@ -5,11 +5,12 @@ import hlStyle from 'react-syntax-highlighter/dist/esm/styles/hljs/monokai-subli
 
 import { useCommonState } from '../../hooks/use-common-state';
 import { useTimeline } from '../../hooks/use-timeline';
+import { usePrevious } from '../../hooks/use-previous';
+import { RecordingEvent } from '../../constants/types';
+import { usePersState } from '../../hooks/use-pers-state';
 import { classNames, formatTime } from '../../utils';
 
 import './Log.scss';
-import { usePrevious } from '../../hooks/use-previous';
-import { RecordingEvent } from '../../constants/types';
 
 SyntaxHighlighter.registerLanguage('json', json);
 
@@ -23,7 +24,15 @@ export function Log({ className }: LogProps) {
     seek = useCommonState('playerSeek'),
     isPlaying = useCommonState('isPlaying');
 
-  const timeline = useTimeline(recording?.uid ?? '');
+  const
+    typesFilter = usePersState('typesFilter'),
+    featuresFilter = usePersState('featuresFilter');
+
+  const timeline = useTimeline(
+    recording?.uid ?? '',
+    typesFilter,
+    featuresFilter
+  );
 
   const eventsListRef = useRef<HTMLDivElement | null>(null);
 

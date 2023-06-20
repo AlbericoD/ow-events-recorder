@@ -65,11 +65,11 @@ export function Recording({
       ...recording.games
     });
 
-    if (games.length === 0) {
-      return <div className="no-games">No games ran</div>;
+    if (games.length > 0) {
+      return <div className="games">{games.join(', ')}</div>;
     }
 
-    return <div className="games">{games.join(', ')}</div>;
+    return <div className="no-games">No games ran</div>;
   }
 
   useEffect(() => {

@@ -1,6 +1,6 @@
-import { kServerUID } from './constants/config';
-import { isWSServerLoad, isWSServerPlay, isWSServerPause, isWSServerSetSeek, isWSServerSetSpeed } from './constants/type-guards';
-import { ExtensionMessageEvent, NullableResultCallback, RecordingEvent, WSClientMessage, WSClientMessageTypes, WSClientUpdate, WSServerMessage } from './constants/types';
+import { kServerUID, kInterAppMessageVersion } from './constants/config';
+import { isWSServerLoad, isWSServerPlay, isWSServerPause, isWSServerSetSeek, isWSServerSetSettings } from './constants/type-guards';
+import { ExtensionMessageEvent, NullableResultCallback, PlayerSettings, RecordingEvent, WSClientMessage, WSClientMessageTypes, WSClientUpdate, WSServerMessage } from './constants/types';
 import { OverwolfAPI } from './services/overwolf-api';
 import { PlayerService } from './services/player';
 import { RecordingReader } from './services/recording-reader';
@@ -96,7 +96,6 @@ class PlayerController {
       unload: () => this.#emitPlayerUpdate(),
       load: () => this.#emitPlayerUpdate(),
       seek: () => this.#emitPlayerUpdate(),
-      speed: () => this.#emitPlayerUpdate(),
       playing: () => this.#emitPlayerUpdate(),
       playFrames: events => this.#playFrames(events)
     });
@@ -113,7 +112,6 @@ class PlayerController {
       type: WSClientMessageTypes.Update,
       loaded: this.#player.loaded,
       seek: this.#player.seek,
-      speed: this.#player.speed,
       playing: this.#player.playing
     });
   }
@@ -123,6 +121,7 @@ class PlayerController {
   ) {
     const messageWithID = {
       messageID: this.#messageID++,
+      version: kInterAppMessageVersion,
       ...message
     };
 
@@ -151,31 +150,36 @@ class PlayerController {
     ) {
       const message: WSServerMessage = event.info;
 
-      if (isWSServerLoad(message)) {
-        this.#playerLoad(message.recordingUID);
-      } else if (isWSServerPlay(message)) {
-        if (typeof message.speed === 'number') {
-          this.#player.setSpeed(message.speed);
-        }
+      if (message.version !== kInterAppMessageVersion) {
+        console.log(
+          'Event Player: #handleServerMessage(): version mismatch:',
+          message.version, '!=', kInterAppMessageVersion
+        );
+        return;
+      }
 
+      if (isWSServerLoad(message)) {
+        this.#playerLoad(message.recordingUID, message.settings);
+      } else if (isWSServerPlay(message)) {
         this.#player.play();
       } else if (isWSServerPause(message)) {
         this.#player.pause();
       } else if (isWSServerSetSeek(message)) {
         this.#player.setSeek(message.seek);
-      } else if (isWSServerSetSpeed(message)) {
-        this.#player.setSpeed(message.speed);
+      } else if (isWSServerSetSettings(message)) {
+        this.#player.setSettings(message.settings);
       }
     }
   }
 
-  async #playerLoad(uid: string) {
+  async #playerLoad(recordingUID: string, settings: PlayerSettings) {
+
     this.#player.unload();
 
-    const recording = await this.#rr.getRecording(uid);
+    const recording = await this.#rr.getRecording(recordingUID);
 
     if (recording) {
-      this.#player.load(recording);
+      this.#player.load(recording, settings);
     }
   }
 }

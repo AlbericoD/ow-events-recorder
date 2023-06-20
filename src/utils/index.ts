@@ -1,3 +1,6 @@
+import { isRecordingGEPLEPEvent } from '../constants/type-guards';
+import { RecordingTimeline } from '../constants/types';
+
 type classNamesArg =
   string |
   undefined |
@@ -112,4 +115,33 @@ export const sanitizeDirPath = (path: string): string => {
   }
 
   return sanitizePath(path);
+}
+
+export const arraysAreEqual = (array1: string[], array2: string[]): boolean => {
+  array1.sort();
+  array2.sort();
+
+  return (JSON.stringify(array1) === JSON.stringify(array2));
+}
+
+export const filterTimeline = (
+  timeline: RecordingTimeline | null,
+  typesFilter: string[],
+  featuresFilter: string[]
+) => {
+  if (!timeline) {
+    return null;
+  }
+
+  if (typesFilter.length === 0 && featuresFilter.length === 0) {
+    return timeline;
+  }
+
+  return timeline.filter(([, event]) => (
+    !typesFilter.includes(event.type) &&
+    !(
+      isRecordingGEPLEPEvent(event) &&
+      featuresFilter.includes(event.data.feature)
+    )
+  ));
 }

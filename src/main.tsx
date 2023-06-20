@@ -1,5 +1,5 @@
 import ReactDOM from 'react-dom';
-import { StrictMode } from 'react';
+// import { StrictMode } from 'react';
 
 import './styles/global.scss';
 
@@ -17,10 +17,10 @@ window.addEventListener('beforeunload', e => {
 });
 
 ReactDOM.render(
-  <StrictMode>
+  /* <StrictMode> */
     <ErrorBoundary>
       <Main />
     </ErrorBoundary>
-  </StrictMode>,
+  /* </StrictMode> */,
   mountElement
 );

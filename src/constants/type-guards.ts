@@ -1,4 +1,4 @@
-import { RecordingEvent, RecordingGameLaunched, RecordingEventTypes, RecordingGameInfo, RecordingGameFeaturesSet, RecordingGameEvent, RecordingInfoUpdate, RecordingGameEventError, RecordingLauncherLaunched, RecordingLauncherUpdated, RecordingLauncherTerminated, RecordingLauncherFeaturesSet, RecordingLauncherEvent, RecordingLauncherInfoUpdate, WSClientMessage, WSClientUpdate, WSClientMessageTypes, WSServerMessage, WSServerLoad, WSServerMessageTypes, WSServerPlay, WSServerPause, WSServerSetSeek, WSServerSetSpeed } from './types';
+import { RecordingEvent, RecordingGameLaunched, RecordingEventTypes, RecordingGameInfo, RecordingGameFeaturesSet, RecordingGameEvent, RecordingInfoUpdate, RecordingGameEventError, RecordingLauncherLaunched, RecordingLauncherUpdated, RecordingLauncherTerminated, RecordingLauncherFeaturesSet, RecordingLauncherEvent, RecordingLauncherInfoUpdate, WSClientMessage, WSClientUpdate, WSClientMessageTypes, WSServerMessage, WSServerLoad, WSServerMessageTypes, WSServerPlay, WSServerPause, WSServerSetSeek, WSServerSetSettings, RecordingGEPLEPEvent } from './types';
 
 export function isRecordingGameLaunched(
   e: RecordingEvent
@@ -72,6 +72,16 @@ export function isRecordingLauncherInfoUpdate(
   return e.type === RecordingEventTypes.LauncherInfoUpdate;
 };
 
+export function isRecordingGEPLEPEvent(
+  e: RecordingEvent
+): e is RecordingGEPLEPEvent {
+  return (
+    e.type === RecordingEventTypes.GameEvent ||
+    e.type === RecordingEventTypes.InfoUpdate ||
+    e.type === RecordingEventTypes.LauncherEvent ||
+    e.type === RecordingEventTypes.LauncherInfoUpdate
+  );
+};
 
 export function isWSClientUpdate(e: WSClientMessage): e is WSClientUpdate {
   return e.type === WSClientMessageTypes.Update;
@@ -94,6 +104,6 @@ export function isWSServerSetSeek(e: WSServerMessage): e is WSServerSetSeek {
   return e.type === WSServerMessageTypes.SetSeek;
 };
 
-export function isWSServerSetSpeed(e: WSServerMessage): e is WSServerSetSpeed {
-  return e.type === WSServerMessageTypes.SetSpeed;
+export function isWSServerSetSettings(e: WSServerMessage): e is WSServerSetSettings {
+  return e.type === WSServerMessageTypes.SetSettings;
 };

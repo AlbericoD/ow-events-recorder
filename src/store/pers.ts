@@ -6,6 +6,8 @@ export interface PersState {
   screen: kMainScreens
   clientUID: string | null
   lastPath: string | null
+  featuresFilter: string[] | null
+  typesFilter: string[] | null
   mainPositionedFor: Viewport | null
   timelineScale: number
   playerSpeed: number
@@ -15,6 +17,8 @@ export const initialPersState: PersState = {
   screen: kMainScreens.Record,
   clientUID: null,
   lastPath: null,
+  featuresFilter: null,
+  typesFilter: null,
   mainPositionedFor: null,
   timelineScale: 1,
   playerSpeed: 1

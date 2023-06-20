@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { classNames } from '../../utils';
 
 import './ProgressBar.scss';
 
 export type ProgressBarProps = {
-  value: number,
-  onChange(value: number): void,
+  value: number
+  onChange(value: number): void
   className?: string
   disabled?: boolean
   timeFormatter(value: number): string
@@ -19,86 +19,109 @@ export function ProgressBar({
   disabled = false,
   timeFormatter
 }: ProgressBarProps) {
-  const [userValue, setUserValue] = useState(0);
-  const [mouseDown, setMouseDown] = useState(false);
-  const [changing, setChanging] = useState(false);
+  const
+    [userValue, setUserValue] = useState(() => value),
+    [mouseDown, setMouseDown] = useState(false),
+    [mouseOver, setMouseOver] = useState(false),
+    [changing, setChanging] = useState(false);
 
   const elRef = useRef<HTMLDivElement>(null);
 
-  const perc = `${((mouseDown || changing) ? userValue : value) * 100}%`;
-  const valuePerc = `${value * 100}%`;
+  const left = useMemo(
+    () => `${((mouseDown || changing) ? userValue : value) * 100}%`,
+    [mouseDown, changing, userValue, value]
+  );
 
-  const onMouseDown = (e: MouseEvent) => {
-    onMouseMoved(e);
-    setMouseDown(true);
-  };
-
-  const onMouseMoved = useCallback((e: MouseEvent, fireEvent = false) => {
-    if (disabled || !mouseDown || !elRef.current) {
+  const onMouseEvent = useCallback((
+    { clientX }: MouseEvent,
+    fireEvent: boolean = false
+  ) => {
+    if (!elRef.current) {
       return;
     }
 
     const { left, width } = elRef.current.getBoundingClientRect();
 
-    const position = (e.clientX - left) / width;
+    const position = (clientX - left) / width;
 
     const newValue = Math.min(Math.max(position, 0), 1);
 
     setUserValue(newValue);
 
     if (fireEvent) {
-      setChanging(true);
       onChange(newValue);
     }
-  }, [disabled, mouseDown, onChange]);
+  }, [onChange]);
 
-  const onMouseUp = useCallback((e: MouseEvent) => {
-    onMouseMoved(e, true);
-    setMouseDown(false);
-  }, [onMouseMoved]);
+  const onMouseOver = (e: MouseEvent) => {
+    onMouseEvent(e);
+    setMouseOver(true);
+  };
+
+  const onMouseOut = (e: MouseEvent) => {
+    onMouseEvent(e);
+    setMouseOver(false);
+  };
+
+  const onMouseDown = (e: MouseEvent) => {
+    onMouseEvent(e);
+    setMouseDown(true);
+  };
 
   useEffect(() => setChanging(false), [value]);
 
   useEffect(() => {
-    if (mouseDown) {
-      document.documentElement.addEventListener('mousemove', onMouseMoved);
+    const onMouseUp = (e: MouseEvent) => {
+      setMouseDown(mouseWasDown => {
+        if (mouseWasDown) {
+          setChanging(true);
+          onMouseEvent(e, true);
+        }
+
+        return false;
+      });
+    };
+
+    document.documentElement.addEventListener('mouseup', onMouseUp);
+
+    if (!disabled && (mouseDown || mouseOver)) {
+      document.documentElement.addEventListener('mousemove', onMouseEvent);
     } else {
-      document.documentElement.removeEventListener('mousemove', onMouseMoved);
+      document.documentElement.removeEventListener('mousemove', onMouseEvent);
     }
 
     return () => {
-      document.documentElement.removeEventListener('mousemove', onMouseMoved);
-    };
-  }, [mouseDown, onMouseMoved]);
-
-  useEffect(() => {
-    document.documentElement.addEventListener('mouseup', onMouseUp);
-
-    return () => {
       document.documentElement.removeEventListener('mouseup', onMouseUp);
+      document.documentElement.removeEventListener('mousemove', onMouseEvent);
     };
-  }, [onMouseUp]);
+  }, [disabled, mouseDown, mouseOver, onMouseEvent]);
 
   return (
     <div
+      ref={elRef}
       className={classNames(
         'ProgressBar',
         className,
         { disabled, changing, 'mouse-down': mouseDown }
       )}
+      onMouseOver={e => onMouseOver(e.nativeEvent)}
+      onMouseOut={e => onMouseOut(e.nativeEvent)}
       onMouseDown={e => onMouseDown(e.nativeEvent)}
-      ref={elRef}
     >
       {
-        (mouseDown || changing) && (
-          <div
-            className="hover-value"
-            style={{ left: `${userValue * 100}%` }}
-          >{timeFormatter(userValue)}</div>
-        )
+        !disabled && (mouseDown || mouseOver || changing) &&
+        <div
+          className="hover-value"
+          style={{ left: `${userValue * 100}%` }}
+        >{timeFormatter(userValue)}</div>
       }
-      <div className="fill" style={{ width: valuePerc }} />
-      {!disabled && <div className="handle" style={{ left: perc }} />}
+
+      <div className="fill" style={{ width: `${value * 100}%` }} />
+
+      {
+        !disabled &&
+        <div className="handle" style={{ left }} />
+      }
     </div>
   );
 }

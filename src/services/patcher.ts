@@ -49,10 +49,6 @@ export class PatcherService {
       kOverwolfFSPrefix + manifestPath
     );
 
-    if (manifest.meta.description.startsWith(kPatchedDescriptionPrefix)) {
-      throw new Error('This app is already patched');
-    }
-
     await this.#copyLibraries(appPath);
 
     const
@@ -118,8 +114,10 @@ export class PatcherService {
       }
     }
 
-    manifest.meta.description = kPatchedDescriptionPrefix +
-      manifest.meta.description;
+    if (!manifest.meta.description.startsWith(kPatchedDescriptionPrefix)) {
+      manifest.meta.description = kPatchedDescriptionPrefix +
+        manifest.meta.description;
+    }
 
     return manifest;
   }
@@ -129,7 +127,9 @@ export class PatcherService {
       scriptTag = '<script src="./player.js"></script>',
       index = html.indexOf('<script');
 
-    html = html.slice(0, index) + scriptTag + html.slice(index);
+    if (!html.includes(scriptTag)) {
+      html = html.slice(0, index) + scriptTag + html.slice(index);
+    }
 
     return html;
   }

@@ -15,6 +15,8 @@ export function Patcher({ className }: PatcherProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let timeoutHandle: number | null = null;
+
     const handleFileDrop = (e: DragEvent) => {
       e.preventDefault();
 
@@ -41,9 +43,14 @@ export function Patcher({ className }: PatcherProps) {
     };
 
     const onPatchAppError = (message: string) => {
+      if (timeoutHandle !== null) {
+        window.clearTimeout(timeoutHandle);
+      }
+
       setError(message);
-      setTimeout(() => setError(v => v ?? null), 5000);
-    }
+
+      timeoutHandle = window.setTimeout(() => setError(null), 5000);
+    };
 
     document.body.addEventListener('drop', handleFileDrop);
     document.body.addEventListener('dragover', handleDragOver);
@@ -65,9 +72,9 @@ export function Patcher({ className }: PatcherProps) {
         error
           ? <p className="error">{error}</p>
           : <p>
-            Drop an .opk or an unpacked app <br />
-            here to patch it
-          </p>
+              Drop an .opk or an unpacked app <br />
+              here to patch it
+            </p>
       }
     </div>
   );

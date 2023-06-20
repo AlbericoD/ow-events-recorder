@@ -6,6 +6,7 @@ import { usePersState } from '../../hooks/use-pers-state';
 import { eventBus } from '../../services/event-bus';
 import { classNames, formatTime } from '../../utils';
 import { kDefaultLocale, kRecordingExportedExt } from '../../constants/config';
+import { RecordingHeader } from '../../constants/types';
 
 import { Recording } from '../Recording/Recording';
 import { ProgressBar } from '../ProgressBar/ProgressBar';
@@ -14,9 +15,9 @@ import { DropDown, DropDownOption } from '../DropDown/DropDown';
 import { DatePicker } from '../DatePicker/DatePicker';
 import { Timeline } from '../Timeline/Timeline';
 import { Log } from '../Log/Log';
+import { RecordingInfo } from '../RecordingInfo/RecordingInfo';
 
 import './Play.scss';
-import { RecordingHeader } from '../../constants/types';
 
 export type PlayProps = {
   className?: string
@@ -32,9 +33,7 @@ export function Play({ className }: PlayProps) {
     seek = useCommonState('playerSeek'),
     loaded = useCommonState('playerLoaded');
 
-  const
-    clientUID = usePersState('clientUID'),
-    speed = usePersState('playerSpeed');
+  const clientUID = usePersState('clientUID');
 
   const [search, setSearch] = useState('');
   const [gameFilter, setGameFilter] = useState<number | null>(null);
@@ -157,10 +156,6 @@ export function Play({ className }: PlayProps) {
     eventBus.emit('seek', v * length);
   }
 
-  function setSpeed(speed: number) {
-    eventBus.emit('speed', speed);
-  }
-
   function importRecording() {
     eventBus.emit('import');
   }
@@ -232,71 +227,6 @@ export function Play({ className }: PlayProps) {
     ));
   }
 
-  function renderRecordingInfo() {
-    if (!recording || !clientUID) {
-      return <></>;
-    }
-
-    const dateStr = new Date(recording.startTime).toLocaleString(
-      kDefaultLocale,
-      {
-        timeStyle: 'medium',
-        dateStyle: 'long'
-      }
-    );
-
-    const gamesStr = Object.values({
-      ...recording.games,
-      ...recording.launchers
-    }).join(', ');
-
-    const lengthStr = formatTime(length);
-
-    return (
-      <ul className="recording-info">
-        <li>
-          Play speed:
-          <div className="play-speed">
-            <button
-              onClick={() => setSpeed(.5)}
-              className={classNames({ active: speed === .5 })}
-            >0.5x</button>
-            <button
-              onClick={() => setSpeed(1)}
-              className={classNames({ active: speed === 1 })}
-            >1x</button>
-            <button
-              onClick={() => setSpeed(1.5)}
-              className={classNames({ active: speed === 1.5 })}
-            >1.5x</button>
-            <button
-              onClick={() => setSpeed(2)}
-              className={classNames({ active: speed === 2 })}
-            >2x</button>
-            <button
-              onClick={() => setSpeed(4)}
-              className={classNames({ active: speed === 4 })}
-            >4x</button>
-            <button
-              onClick={() => setSpeed(8)}
-              className={classNames({ active: speed === 8 })}
-            >8x</button>
-          </div>
-        </li>
-        <li>
-          Author's OW Username:
-          <strong>{recording.author || 'Unknown'}</strong>
-        </li>
-        <li>Recorded on: <strong>{dateStr}</strong></li>
-        <li>Length: <strong>{lengthStr}</strong></li>
-        <li>
-          Games:
-          <strong>{gamesStr ? gamesStr : 'No games ran'}</strong>
-        </li>
-      </ul>
-    );
-  }
-
   function renderRecording(v: RecordingHeader) {
     return (
       <Recording
@@ -366,7 +296,7 @@ export function Play({ className }: PlayProps) {
       <div className="current">
         {clientUID ? renderControls() : <SetClient />}
 
-        {renderRecordingInfo()}
+        <RecordingInfo />
 
         <div className="actions">
           {

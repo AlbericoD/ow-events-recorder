@@ -1,8 +1,8 @@
 import { EventEmitter, LauncherStatus, GameStatus, OverwolfWindow, WindowTunnel, log } from 'ow-libs';
 import { debounce } from 'throttle-debounce';
 
-import { kWindowNames, kEventBusName, kRecordingReaderWriterName, kRecordingExportedExt } from './constants/config';
-import { EventBusEvents, ExtensionMessageEvent, OpenFilePickerMultiResult, WSClientMessage, WSServerLoad, WSServerMessage, WSServerMessageTypes, WSServerPause, WSServerPlay, WSServerSetSeek, WSServerSetSpeed } from './constants/types';
+import { kWindowNames, kEventBusName, kRecordingReaderWriterName, kRecordingExportedExt, kInterAppMessageVersion } from './constants/config';
+import { EventBusEvents, ExtensionMessageEvent, OpenFilePickerMultiResult, WSClientMessage, WSServerLoad, WSServerMessage, WSServerMessageTypes, WSServerPause, WSServerPlay, WSServerSetSeek, WSServerSetSettings } from './constants/types';
 import { RecorderService } from './services/recorder';
 import { makeCommonStore } from './store/common';
 import { makePersStore } from './store/pers';
@@ -90,15 +90,27 @@ class BackgroundController {
       load: uid => this.load(uid),
       playPause: () => this.togglePlay(),
       seek: seek => this.seekDebounced(seek),
-      speed: speed => this.setSpeed(speed),
-
       import: () => this.import(),
       importFromPaths: paths => this.importFromPaths(paths),
       export: uid => this.export(uid),
 
       setTimelineScale: scale => this.persState.timelineScale = scale,
 
-      patchApp: path => this.patchApp(path)
+      patchApp: path => this.patchApp(path),
+
+      speed: speed => {
+        this.persState.playerSpeed = speed;
+
+        this.setPlayerSettings();
+      },
+      typesFilter: types => {
+        this.persState.typesFilter = types;
+        this.setPlayerSettings();
+      },
+      featuresFilter: features => {
+        this.persState.featuresFilter = features;
+        this.setPlayerSettings();
+      }
     });
 
     this.rs.on({
@@ -217,6 +229,14 @@ class BackgroundController {
     ) {
       const message: WSClientMessage = event.info;
 
+      if (message.version !== kInterAppMessageVersion) {
+        console.log(
+          'handleClientMessages(): version mismatch:',
+          message.version, '!=', kInterAppMessageVersion
+        );
+        return;
+      }
+
       if (isWSClientUpdate(message)) {
         this.state.playerLoaded = message.loaded;
         this.state.playerSeek = message.seek;
@@ -259,6 +279,7 @@ class BackgroundController {
   ) {
     const messageWithID = {
       messageID: this.messageID++,
+      version: kInterAppMessageVersion,
       ...message
     };
 
@@ -279,10 +300,17 @@ class BackgroundController {
 
     this.state.recording = recording;
 
+    const settings = {
+      featuresFilter: this.persState.featuresFilter ?? [],
+      typesFilter: this.persState.typesFilter ?? [],
+      speed: this.persState.playerSpeed
+    };
+
     if (recording !== null) {
       this.sendMessageToClient<WSServerLoad>({
         type: WSServerMessageTypes.Load,
-        recordingUID: uid
+        recordingUID: uid,
+        settings
       });
     }
   }
@@ -318,8 +346,7 @@ class BackgroundController {
       });
     } else {
       this.sendMessageToClient<WSServerPlay>({
-        type: WSServerMessageTypes.Play,
-        speed: this.persState.playerSpeed
+        type: WSServerMessageTypes.Play
       });
     }
   }
@@ -331,12 +358,16 @@ class BackgroundController {
     });
   }
 
-  setSpeed(speed: number) {
-    this.persState.playerSpeed = speed;
+  setPlayerSettings() {
+    const settings = {
+      featuresFilter: this.persState.featuresFilter ?? [],
+      typesFilter: this.persState.typesFilter ?? [],
+      speed: this.persState.playerSpeed
+    };
 
-    this.sendMessageToClient<WSServerSetSpeed>({
-      type: WSServerMessageTypes.SetSpeed,
-      speed
+    this.sendMessageToClient<WSServerSetSettings>({
+      type: WSServerMessageTypes.SetSettings,
+      settings
     });
   }
 

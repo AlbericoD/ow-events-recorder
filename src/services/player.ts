@@ -1,7 +1,8 @@
-import { EventEmitter } from 'ow-libs';
+import { EventEmitter, L } from 'ow-libs';
 
 import { isRecordingGameInfo, isRecordingLauncherLaunched, isRecordingLauncherUpdated, isRecordingLauncherTerminated, isRecordingGameFeaturesSet, isRecordingLauncherFeaturesSet } from '../constants/type-guards';
-import { RecordingEvent, Recording, NullableResultCallback, ResultCallback, RecordingTimeline } from '../constants/types';
+import { RecordingEvent, Recording, NullableResultCallback, ResultCallback, RecordingTimeline, PlayerSettings } from '../constants/types';
+import { arraysAreEqual, filterTimeline } from '../utils';
 
 const
   kTickInterval = 10, // ms
@@ -12,17 +13,19 @@ export type PlayerServiceEvents = {
   load: string
   playing: boolean
   seek: number
-  speed: number
   playFrames: RecordingEvent[]
 };
 
 export class PlayerService extends EventEmitter<PlayerServiceEvents> {
   #recording: Recording | null = null;
+  #timeline: RecordingTimeline = [];
   #playing = false;
   #seek = 0;
   #speed = 1;
   #tickCounter = 0;
   #nextTickTimeout: number | null = null;
+  #featuresFilter: string[] = [];
+  #typesFilter: string[] = [];
 
   get loaded() {
     return this.#recording !== null;
@@ -44,6 +47,14 @@ export class PlayerService extends EventEmitter<PlayerServiceEvents> {
     return this.#speed;
   }
 
+  get featuresFilter() {
+    return this.#featuresFilter;
+  }
+
+  get typesFilter() {
+    return this.#typesFilter;
+  }
+
   get stopped() {
     return (!this.#playing && this.#seek >= this.recordingLength);
   }
@@ -56,17 +67,26 @@ export class PlayerService extends EventEmitter<PlayerServiceEvents> {
     return this.#recording.endTime - this.#recording.startTime;
   }
 
-  load(recording: Recording) {
+  load(recording: Recording, settings: PlayerSettings) {
     this.pause();
 
     this.#recording = recording;
+
+    this.#speed = settings.speed;
+
+    this.#timeline = filterTimeline(
+      recording.timeline,
+      settings.typesFilter,
+      settings.featuresFilter
+    ) ?? [];
 
     this.emit('load', recording.uid);
 
     console.log(
       'Event Player: loaded recording:',
       recording.title,
-      recording.uid
+      recording.uid,
+      ...L(settings)
     );
   }
 
@@ -139,10 +159,34 @@ export class PlayerService extends EventEmitter<PlayerServiceEvents> {
   }
 
   setSpeed(speed: number) {
-    if (this.#speed !== speed) {
-      this.#speed = speed;
-      this.emit('speed', speed);
+    this.#speed = speed;
+  }
+
+  setSettings(settings: PlayerSettings) {
+    const timeline = this.#recording?.timeline ?? [];
+
+    if (this.#playing) {
+      this.pause();
     }
+
+    this.#speed = settings.speed;
+
+    if (
+      arraysAreEqual(this.#typesFilter, settings.typesFilter) &&
+      arraysAreEqual(this.#featuresFilter, settings.featuresFilter)
+    ) {
+      this.#timeline = timeline;
+      return;
+    }
+
+    this.#typesFilter = settings.typesFilter;
+    this.#featuresFilter = settings.featuresFilter;
+
+    this.#timeline = filterTimeline(
+      timeline,
+      settings.typesFilter,
+      settings.featuresFilter
+    ) ?? [];
   }
 
   #cancelTick() {
@@ -209,7 +253,7 @@ export class PlayerService extends EventEmitter<PlayerServiceEvents> {
       startAdjTime = this.#recording.startTime + start,
       endAdjTime = this.#recording.startTime + end;
 
-    const events = this.#recording.timeline
+    const events = this.#timeline
       .filter(([time]) => (time >= startAdjTime && time < endAdjTime))
       .map(([, event]) => event);
 
@@ -230,7 +274,7 @@ export class PlayerService extends EventEmitter<PlayerServiceEvents> {
     const before = this.#recording.startTime + this.#seek;
 
     const event = PlayerService.getEventByTypeRecent(
-      this.#recording.timeline,
+      this.#timeline,
       before,
       isRecordingGameInfo
     );
@@ -257,7 +301,7 @@ export class PlayerService extends EventEmitter<PlayerServiceEvents> {
       const before = this.#recording.startTime + this.#seek;
 
       const event = PlayerService.getEventByTypeRecent(
-        this.#recording.timeline,
+        this.#timeline,
         before,
         isRecordingGameInfo
       );
@@ -295,27 +339,27 @@ export class PlayerService extends EventEmitter<PlayerServiceEvents> {
       const before = this.#recording.startTime + this.#seek;
 
       const launchedEvent = PlayerService.getEventByTypeRecent(
-        this.#recording.timeline,
+        this.#timeline,
         before,
         isRecordingLauncherLaunched
       );
 
       const updatedEvent = PlayerService.getEventByTypeRecent(
-        this.#recording.timeline,
+        this.#timeline,
         before,
         isRecordingLauncherUpdated
       );
 
       const closedEvent = PlayerService.getEventByTypeRecent(
-        this.#recording.timeline,
+        this.#timeline,
         before,
         isRecordingLauncherTerminated
       );
 
-      console.log(
-        'Event Player: DEBUG: getRunningLaunchersInfo():',
-        { launchedEvent, updatedEvent, closedEvent }
-      );
+      // console.log(
+      //   'Event Player: DEBUG: getRunningLaunchersInfo():',
+      //   { launchedEvent, updatedEvent, closedEvent }
+      // );
 
       const launchers: overwolf.games.launchers.LauncherInfo[] = [];
 
@@ -357,7 +401,7 @@ export class PlayerService extends EventEmitter<PlayerServiceEvents> {
       const after = this.#recording.startTime + this.#seek - 20000;
 
       const featuresSetEvent = PlayerService.getEventByTypeAfter(
-        this.#recording.timeline,
+        this.#timeline,
         after,
         isRecordingGameFeaturesSet
       );
@@ -389,7 +433,7 @@ export class PlayerService extends EventEmitter<PlayerServiceEvents> {
       const after = this.#recording.startTime + this.#seek - 20000;
 
       const featuresSetEvent = PlayerService.getEventByTypeAfter(
-        this.#recording.timeline,
+        this.#timeline,
         after,
         isRecordingLauncherFeaturesSet
       );
