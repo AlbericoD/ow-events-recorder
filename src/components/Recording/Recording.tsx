@@ -31,7 +31,8 @@ export function Recording({
   const titleEl = useRef<HTMLDivElement | null>(null);
 
   const onTitleInput = debounce(1000, (e: React.FormEvent) => {
-    const title = e.currentTarget.textContent?.replace(/\n/g,' ') ?? 'Untitled';
+    const title = titleEl.current?.textContent?.replace(/\n/g,' ')
+      || 'Untitled';
 
     eventBus.emit('rename', { uid: recording.uid, title });
   });

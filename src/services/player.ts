@@ -165,28 +165,25 @@ export class PlayerService extends EventEmitter<PlayerServiceEvents> {
   setSettings(settings: PlayerSettings) {
     const timeline = this.#recording?.timeline ?? [];
 
-    if (this.#playing) {
-      this.pause();
-    }
-
     this.#speed = settings.speed;
 
     if (
-      arraysAreEqual(this.#typesFilter, settings.typesFilter) &&
-      arraysAreEqual(this.#featuresFilter, settings.featuresFilter)
+      !arraysAreEqual(this.#typesFilter, settings.typesFilter) ||
+      !arraysAreEqual(this.#featuresFilter, settings.featuresFilter)
     ) {
-      this.#timeline = timeline;
-      return;
+      if (this.#playing) {
+        this.pause();
+      }
+
+      this.#typesFilter = settings.typesFilter;
+      this.#featuresFilter = settings.featuresFilter;
+
+      this.#timeline = filterTimeline(
+        timeline,
+        settings.typesFilter,
+        settings.featuresFilter
+      ) ?? [];
     }
-
-    this.#typesFilter = settings.typesFilter;
-    this.#featuresFilter = settings.featuresFilter;
-
-    this.#timeline = filterTimeline(
-      timeline,
-      settings.typesFilter,
-      settings.featuresFilter
-    ) ?? [];
   }
 
   #cancelTick() {

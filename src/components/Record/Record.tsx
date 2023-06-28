@@ -72,7 +72,7 @@ export function Record({ className, onResize }: RecordProps) {
     if (onResize) {
       onResize();
     }
-  }, [onResize, showRecordings]);
+  }, [onResize, showRecordings, newRecordings]);
 
   return (
     <div className={classNames('Record', className)}>

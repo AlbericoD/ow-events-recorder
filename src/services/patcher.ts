@@ -2,7 +2,7 @@ import { v4 as uuid } from 'uuid';
 
 import { ERPIOService } from './erp-io';
 import { kOverwolfFSPrefix } from '../constants/config';
-import { sanitizeDirPath, sanitizePath, writeFile } from '../utils';
+import { dirName, sanitizeDirPath, sanitizePath, writeFile } from '../utils';
 
 const kPatchedDescriptionPrefix = '(Overwolf ERP Patched) ';
 
@@ -49,12 +49,13 @@ export class PatcherService {
       kOverwolfFSPrefix + manifestPath
     );
 
-    await this.#copyLibraries(appPath);
-
     const
       startWindowName = manifest.data.start_window,
       startWindowInfo = manifest.data.windows[startWindowName],
-      startWindowHtmlPath = appPath + startWindowInfo.file;
+      startWindowHtmlPath = appPath + startWindowInfo.file,
+      startWindowHtmlDir = dirName(startWindowHtmlPath);
+
+    await this.#copyLibraries(startWindowHtmlDir);
 
     const manifestJSON = JSON.stringify(
       this.#processManifest(manifest),
@@ -124,7 +125,7 @@ export class PatcherService {
 
   #processStartWindowHtml(html: string): string {
     const
-      scriptTag = '<script src="./player.js"></script>',
+      scriptTag = '<script src="player.js"></script>',
       index = html.indexOf('<script');
 
     if (!html.includes(scriptTag)) {

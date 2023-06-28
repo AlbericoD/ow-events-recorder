@@ -45,4 +45,4 @@ export const kRecordingEventTypes = [
   RecordingEventTypes.LauncherFeaturesSet,
   RecordingEventTypes.LauncherEvent,
   RecordingEventTypes.LauncherInfoUpdate
-]
+];

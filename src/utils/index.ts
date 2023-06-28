@@ -117,6 +117,10 @@ export const sanitizeDirPath = (path: string): string => {
   return sanitizePath(path);
 }
 
+export const dirName = (path: string): string => {
+  return sanitizeDirPath(path.split('/').slice(0, -1).join('/'));
+}
+
 export const arraysAreEqual = (array1: string[], array2: string[]): boolean => {
   array1.sort();
   array2.sort();
