@@ -1,7 +1,13 @@
 {
-  "name": "event-recorded",
+  "name": "event-recorder",
   "version": "0.2.5",
-  "private": true,
+  "description": "GEP Event recorder & player for Overwolf",
+  "keywords": ["Overwolf", "GEP", "Game events recorder"],
+  "author": {
+    "name": "Anton Kulakov",
+    "email": "anton.kulakov@overwolf.com"
+  },
+  "license": "MIT",
   "scripts": {
     "lint": "eslint src/**/*.ts",
     "build": "node scripts/build.js",
