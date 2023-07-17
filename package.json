@@ -1,8 +1,12 @@
 {
   "name": "event-recorder",
-  "version": "0.2.5",
+  "version": "1.0.0",
   "description": "GEP Event recorder & player for Overwolf",
-  "keywords": ["Overwolf", "GEP", "Game events recorder"],
+  "keywords": [
+    "Overwolf",
+    "GEP",
+    "Game events recorder"
+  ],
   "author": {
     "name": "Anton Kulakov",
     "email": "anton.kulakov@overwolf.com"
