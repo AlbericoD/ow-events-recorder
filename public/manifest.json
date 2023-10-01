@@ -4,7 +4,7 @@
   "meta": {
     "name": "Overwolf ERP",
     "description": "Overwolf Event Recorder/Player",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "minimum-overwolf-version": "0.165.0",
     "author": "Overwolf",
     "icon": "icons/dock.png",
@@ -100,7 +100,8 @@
       22700,
       22848,
       21556,
-      215561
+      215561,
+      22730
     ],
     "game_targeting": {
       "type": "dedicated",
@@ -151,7 +152,8 @@
         22700,
         22848,
         21556,
-        215561
+        215561,
+        22730
       ]
     }
   }
