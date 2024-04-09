@@ -87,7 +87,8 @@ class PlayerController {
       setGameRequiredFeatures: cb => this.#player.setGameRequiredFeatures(cb),
       setLauncherRequiredFeatures: cb => {
         this.#player.setLauncherRequiredFeatures(cb);
-      }
+      },
+      getInfo: (cb) => this.#player.getInfo(cb)
     });
   }
 

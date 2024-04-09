@@ -19,7 +19,8 @@ enum kEvents {
   'onLauncherInfoUpdates' = 'onLauncherInfoUpdates',
   'onLauncherEvents' = 'onLauncherEvent',
   'setGameRequiredFeatures' = 'setGameRequiredFeatures',
-  'setLauncherRequiredFeatures' = 'setLauncherRequiredFeatures'
+  'setLauncherRequiredFeatures' = 'setLauncherRequiredFeatures',
+  'getInfo' = 'getInfo'
 }
 
 interface OverwolfAPIEvents {
@@ -50,7 +51,8 @@ interface OverwolfAPIEvents {
   [kEvents.onLauncherUpdated]: overwolf.games.launchers.UpdatedEvent
   [kEvents.onLauncherTerminated]: overwolf.games.launchers.LauncherInfo
   [kEvents.onLauncherInfoUpdates]: unknown
-  [kEvents.onLauncherEvents]: unknown
+  [kEvents.onLauncherEvents]: unknown,
+  [kEvents.getInfo]: overwolf.CallbackFunction<overwolf.games.events.GetInfoResult>
 }
 
 export class OverwolfAPI extends EventEmitter<OverwolfAPIEvents> {
@@ -147,6 +149,16 @@ export class OverwolfAPI extends EventEmitter<OverwolfAPIEvents> {
       features: string[],
       callback: OverwolfAPIEvents[kEvents.setLauncherRequiredFeatures]
     ) => this.emit(kEvents.setLauncherRequiredFeatures, callback);
+
+    const getInfo = (callback: OverwolfAPIEvents[kEvents.getInfo]) =>
+          this.emit(kEvents.getInfo, callback);
+
+    if (this.hasListener(kEvents.getInfo)) {
+      this.removeListener(kEvents.getInfo, getInfo);
+      this.off([kEvents.getInfo], getInfo);
+    }
+
+    overwolf.games.events.getInfo = getInfo;
   }
 
   fireEvent(e: RecordingEvent) {

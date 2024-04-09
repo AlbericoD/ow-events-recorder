@@ -149,3 +149,21 @@ export const filterTimeline = (
     )
   ));
 }
+export type DeepMergeArg = typeof deepMerge.arguments;
+export const deepMerge = (
+  previousObject: Record<string, unknown>,
+  newestObject: Record<string, unknown>
+) => {
+  for (const [key, value] of Object.entries(newestObject)) {
+    if (
+      previousObject[key] &&
+      typeof previousObject[key] === "object" &&
+      typeof value === "object"
+    ) {
+      deepMerge(previousObject[key] as typeof previousObject, value as typeof newestObject);
+    } else {
+      previousObject[key] = value;
+    }
+  }
+  return previousObject;
+};

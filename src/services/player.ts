@@ -2,7 +2,7 @@ import { EventEmitter, L } from 'ow-libs';
 
 import { isRecordingGameInfo, isRecordingLauncherLaunched, isRecordingLauncherUpdated, isRecordingLauncherTerminated, isRecordingGameFeaturesSet, isRecordingLauncherFeaturesSet } from '../constants/type-guards';
 import { RecordingEvent, Recording, NullableResultCallback, ResultCallback, RecordingTimeline, PlayerSettings } from '../constants/types';
-import { arraysAreEqual, filterTimeline } from '../utils';
+import { arraysAreEqual, filterTimeline, deepMerge, type DeepMergeArg } from '../utils';
 
 const
   kTickInterval = 10, // ms
@@ -485,5 +485,57 @@ export class PlayerService extends EventEmitter<PlayerServiceEvents> {
     }
 
     return null;
+  }
+
+  getInfo(cb: ResultCallback<overwolf.games.events.GetInfoResult>) {
+    try {
+      if (!this.#recording) {
+        throw new Error("Event Player: no recording");
+      }
+
+      const before = this.#recording.startTime + this.#seek;
+
+      const event = PlayerService.getEventByTypeRecent(
+        this.#timeline,
+        before,
+        isRecordingGameInfo
+      );
+
+      const events = this.#timeline
+        .filter(
+          ([time, { type }]) =>
+            time <= before &&
+            isRecordingGameInfo(event!) &&
+            type === "InfoUpdate"
+        )
+        .reduce((acc, [, { data }]) => {
+          for (const [key, value] of Object.entries(data)) {
+            if (key === "feature") return acc; //the original implementation from overwolf.events.getInfo does not include the feature key
+            if (acc?.[key]) {
+              acc[key] = deepMerge(acc[key] as DeepMergeArg, value as DeepMergeArg);
+            } else {
+              acc[key] = value;
+            }
+          }
+          return acc;
+        }, {} as Record<string, unknown>);
+
+      if (!event || !event.data || !event.data.gameInfo) {
+        throw new Error("Event Player: game info not found");
+      }
+
+      cb({
+        success: true,
+        res: events,
+      });
+    } catch (e) {
+      console.warn(e);
+
+      cb({
+        success: false,
+        error: String(e),
+        res: null,
+      });
+    }
   }
 }
